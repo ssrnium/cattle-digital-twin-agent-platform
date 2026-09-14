@@ -1,0 +1,20 @@
+# ---- Python ----
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# ---- Node ----
+node_modules/
+
+# ---- 密钥：绝不入库 ----
+.env
+**/.env
+
+# ---- cow-agent 运行时目录（会话/记忆/工具大结果，由容器 named volume 或本地运行生成） ----
+cow-agent/agent-home/.bear/sessions/
+cow-agent/agent-home/.bear-code/
+cow-agent/agent-home/.BearCode/
+
+# ---- 构建产物 ----
+cow-web/dist/

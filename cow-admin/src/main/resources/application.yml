@@ -1,0 +1,57 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  application:
+    name: cow-admin
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/cow_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: ${SQL_INIT_MODE:always}
+      schema-locations: classpath:db/schema.sql
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+
+mqtt:
+  enabled: ${MQTT_ENABLED:false}
+  broker: ${MQTT_BROKER:tcp://localhost:1883}
+  client-id: ${MQTT_CLIENT_ID:cow-admin}
+  username: ${MQTT_USERNAME:}
+  password: ${MQTT_PASSWORD:}
+  event-topic: ${MQTT_EVENT_TOPIC:farm/+/event}
+
+agent:
+  # 牧场智能体服务（cow-agent, FastAPI + BearCode）
+  base-url: ${AGENT_BASE_URL:http://localhost:8003}
+
+jwt:
+  # 生产环境务必通过环境变量覆盖
+  secret: ${JWT_SECRET:cow-digital-twin-platform-jwt-secret-key-please-override-in-prod-0123456789abcdef}
+  expire-minutes: ${JWT_EXPIRE_MINUTES:720}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.portfolio.cow: info
