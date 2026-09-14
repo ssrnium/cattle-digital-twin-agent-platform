@@ -1,0 +1,119 @@
+version: "3.9"
+
+# 单牛数字孪生与健康繁殖任务管理平台 —— 一键编排
+# 基础服务：db / redis / mosquitto / cow-admin / cow-ai / cow-web
+# 演示服务：cow-edge（profiles: demo，可选启动）
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cow-db
+    environment:
+      POSTGRES_DB: cow_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./cow-admin/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cow_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    container_name: cow-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: cow-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+
+  cow-admin:
+    build: ./cow-admin
+    container_name: cow-admin
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/cow_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      MQTT_ENABLED: "true"
+      MQTT_BROKER: tcp://mosquitto:1883
+      JWT_SECRET: cow-digital-twin-compose-demo-secret-please-override-0123456789abcdef
+    ports:
+      - "8081:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+  cow-ai:
+    build: ./cow-ai
+    container_name: cow-ai
+    ports:
+      - "8000:8000"
+
+  cow-agent:
+    build: ./cow-agent
+    container_name: cow-agent
+    environment:
+      # OpenAI 兼容协议，默认 DeepSeek V4.1 Flash；key 走环境变量注入，不进镜像
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-flash}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      COW_ADMIN_BASE_URL: http://cow-admin:8081
+      AGENT_USER: svc-agent
+      AGENT_PASSWORD: ${AGENT_PASSWORD:-SvcAgent@123}
+    ports:
+      - "8003:8003"
+    volumes:
+      - agent-home:/app/agent-home
+    depends_on:
+      - cow-admin
+
+  cow-edge:
+    build: ./cow-edge
+    container_name: cow-edge
+    profiles: ["demo"]
+    environment:
+      MQTT_HOST: mosquitto
+      ADMIN_URL: http://cow-admin:8081
+      DEVICE_ID: edge-node-01
+      DEVICE_KEY: edge-node-01-secret-2026
+      EDGE_DB_PATH: /data/edge_buffer.db
+    volumes:
+      - edge-buffer:/data
+    depends_on:
+      - mosquitto
+      - cow-admin
+
+  cow-web:
+    build: ./cow-web
+    container_name: cow-web
+    ports:
+      - "8089:80"
+    depends_on:
+      - cow-admin
+
+volumes:
+  db-data:
+  mosquitto-data:
+  edge-buffer:
+  agent-home:
