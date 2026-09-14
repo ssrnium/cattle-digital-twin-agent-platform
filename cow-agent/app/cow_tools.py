@@ -37,6 +37,7 @@ class AdminClient:
             base_url=self._base_url,
             timeout=HTTP_TIMEOUT,
             transport=self._transport,
+            trust_env=False,  # 系统代理会劫持 localhost 请求导致非 JSON 响应，直连
         )
 
     async def login(self) -> None:

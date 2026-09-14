@@ -49,7 +49,7 @@ class WorkOrderServiceTest {
     void versionConflictThrowsOptimisticLock() {
         WorkOrder o = orderAt(WorkOrder.STATE_NEW);
         when(workOrderMapper.selectById(1L)).thenReturn(o);
-        when(workOrderMapper.updateById(any())).thenReturn(0); // 并发已被改，更新 0 行
+        when(workOrderMapper.updateById(any(WorkOrder.class))).thenReturn(0); // 并发已被改，更新 0 行
         assertThrows(OptimisticLockingFailureException.class,
                 () -> workOrderService.assign(1L, 2L, 0));
     }
@@ -58,7 +58,7 @@ class WorkOrderServiceTest {
     void assignTransitionsNewToDispatched() {
         WorkOrder o = orderAt(WorkOrder.STATE_NEW);
         when(workOrderMapper.selectById(1L)).thenReturn(o);
-        when(workOrderMapper.updateById(any())).thenReturn(1);
+        when(workOrderMapper.updateById(any(WorkOrder.class))).thenReturn(1);
         WorkOrder result = workOrderService.assign(1L, 2L, 0);
         assertEquals(WorkOrder.STATE_DISPATCHED, result.getState());
         assertEquals(2L, result.getAssigneeId());

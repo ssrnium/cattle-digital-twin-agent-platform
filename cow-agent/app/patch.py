@@ -77,5 +77,61 @@ def apply_patches() -> None:
     # agents.agent 是模块级 from-import，patch 该模块命名空间即生效
     agent_mod.check_permission = patched_check_permission
 
+    # DeepSeek V4.1 Flash 在并行/多轮工具调用时会复用 tool_call_id，
+    # 下一轮请求被 DeepSeek 拒（400 Duplicate tool_call_id）。
+    # 这些 id 只在单次请求内起"调用-结果"配对作用，与跨轮语义无关——
+    # 因此在每次发请求前，把历史消息里的调用/结果 id 按顺序成对重写成全新唯一值。
+    import uuid
+
+    original_call_stream = agent_mod.Agent._call_openai_stream
+
+    def sanitize_history_ids(agent_self):
+        try:
+            pending = []
+            for m in getattr(agent_self, "_openai_messages", []):
+                tcs = m.get("tool_calls") or []
+                if tcs:
+                    for tc in tcs:
+                        new_id = f"call_{uuid.uuid4().hex[:10]}"
+                        tc["id"] = new_id
+                        pending.append(new_id)
+                if m.get("role") == "tool" and m.get("tool_call_id") is not None:
+                    m["tool_call_id"] = pending.pop(0) if pending else m["tool_call_id"]
+            seq = [(m.get("role"), len(m.get("tool_calls") or []), m.get("tool_call_id"))
+                   for m in getattr(agent_self, "_openai_messages", [])]
+            logger.info("outbound messages: %s", seq)
+        except Exception:
+            pass
+
+    async def sanitized_call_stream(self):
+        sanitize_history_ids(self)
+        resp = await original_call_stream(self)
+        try:
+            # 新响应里的 tool_calls 与历史已有 id 查重（保险丝）
+            existing_ids = set()
+            for m in getattr(self, "_openai_messages", []):
+                for tc in (m.get("tool_calls") or []):
+                    if tc.get("id"):
+                        existing_ids.add(tc["id"])
+                if m.get("role") == "tool" and m.get("tool_call_id"):
+                    existing_ids.add(m["tool_call_id"])
+            for choice in resp.get("choices", []):
+                tcs = (choice.get("message") or {}).get("tool_calls") or []
+                for tc in tcs:
+                    cid = tc.get("id") or ""
+                    if not cid or cid in existing_ids:
+                        n = 0
+                        new_id = cid or f"call_{uuid.uuid4().hex[:10]}"
+                        while not new_id or new_id in existing_ids:
+                            n += 1
+                            new_id = f"{cid or 'call'}_x{n}_{uuid.uuid4().hex[:6]}"
+                        tc["id"] = new_id
+                    existing_ids.add(tc["id"])
+        except Exception:
+            pass
+        return resp
+
+    agent_mod.Agent._call_openai_stream = sanitized_call_stream
+
     _applied = True
     logger.info("bear runtime patches applied")
