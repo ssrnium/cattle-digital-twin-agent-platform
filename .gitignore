@@ -18,3 +18,8 @@ cow-agent/agent-home/.BearCode/
 
 # ---- 构建产物 ----
 cow-web/dist/
+
+# ---- 验收补齐 ----
+cow-admin/target/
+cow-edge/*.db
+cow-agent/agent-home/
