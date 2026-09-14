@@ -52,7 +52,7 @@ class EventIngestServiceTest {
     @Test
     void duplicateEventIdIsIdempotent_noTwinNoOrder() {
         // 重复 event_id：唯一约束冲突 → duplicated=true，绝不触发孪生更新与工单（重复告警 0）
-        when(eventMapper.insert(any())).thenThrow(new DuplicateKeyException("uk_unified_event_event_id"));
+        when(eventMapper.insert(any(UnifiedEvent.class))).thenThrow(new DuplicateKeyException("uk_unified_event_event_id"));
         IngestResponse resp = eventIngestService.ingest(req());
         assertTrue(resp.isDuplicated());
         verify(twinUpdater, never()).apply(any());
@@ -61,7 +61,7 @@ class EventIngestServiceTest {
 
     @Test
     void freshEventFlowsToTwinAndRuleEngine() {
-        when(eventMapper.insert(any())).thenReturn(1);
+        when(eventMapper.insert(any(UnifiedEvent.class))).thenReturn(1);
         IngestResponse resp = eventIngestService.ingest(req());
         assertFalse(resp.isDuplicated());
         verify(twinUpdater).apply(any());

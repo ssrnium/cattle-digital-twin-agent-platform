@@ -1,0 +1,5 @@
+# Created at 2026-09-14T10:27:06.925
+Boot Manifest-JAR contains absolute paths in classpath 'D:\研究生\企业级项目的构建\cow-digital-twin-platform\cow-admin\target\test-classes'
+Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+'other' has different root
+
