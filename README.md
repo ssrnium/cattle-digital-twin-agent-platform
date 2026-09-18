@@ -3,6 +3,18 @@
 > 奶牛数字孪生系统**首场验证版（MVP）**：以 20 号牛棚 103 头奶牛为垂直切片，打通
 > 「AI 事件 → 幂等接入 → 数字孪生状态 → 告警工单闭环 → 断网缓存恢复 → 牛棚可视化」全链路。
 
+## 运行实景（真实运行截取）
+
+| 数据看板 | 牛棚孪生图（103 头牛状态变色） |
+| --- | --- |
+| ![数据看板](docs/screenshots/cow-02-dashboard.png) | ![牛棚孪生图](docs/screenshots/cow-03-barn.png) |
+
+| 智能体写操作人工确认弹窗 | 设备在线状态（心跳驱动） |
+| --- | --- |
+| ![写操作确认](docs/screenshots/cow-08b-agent-confirm.png) | ![设备在线](docs/screenshots/cow-device-online.png) |
+
+> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 21 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`。
+
 ## 架构
 
 ```mermaid
@@ -70,6 +82,9 @@ cow-agent 环境变量：`LLM_BASE_URL`（默认 `https://api.deepseek.com/v1`�
 `CONFIRM_TIMEOUT_SECONDS`（写操作审批超时，默认 120）。
 
 ### 本地开发
+
+> **无 Docker 环境实测路径（2026-09-14 验收通过）**：便携 PostgreSQL 16.10（建库 `cow_db`）+ 便携 Redis 5.0.14 + **Mosquitto 2.0.22 便携版**（`mosquitto -c acceptance.conf`，匿名监听 1883）即可满足全部依赖；MQTT 链路默认 `MQTT_ENABLED=true` 时生效。
+> 与黄瓜平台并存时端口避让：`cow-web` 用 `npm run dev -- --port 5174`、`cow-ai` 用 `--port 8001`。
 
 | 模块 | 命令 |
 | --- | --- |
