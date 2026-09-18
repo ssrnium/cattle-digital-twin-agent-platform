@@ -90,7 +90,7 @@ function timelineColor(type: string): 'warning' | 'danger' | 'info' | 'primary' 
   return 'primary'
 }
 
-function timelineIcon() {
+function timelineIcon(_type?: string) {
   return undefined
 }
 
