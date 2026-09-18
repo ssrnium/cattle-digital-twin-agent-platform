@@ -1,6 +1,6 @@
 # PROJECT_STATUS — 单牛数字孪生与健康繁殖任务管理平台
 
-> 更新日期：2026-09-14 ｜ 当前版本：**v0.2.0-acceptance**（首场验证版切片，全链路验收通过）
+> 更新日期：2026-09-18 ｜ 当前版本：**v0.2.0-acceptance**（首场验证版切片，全链路验收通过）
 
 ## 状态速览
 
@@ -10,7 +10,7 @@
 | AI 模型 | **mock 推理**（cow-ai 返回确定性伪随机结果；第一阶段真实权重待接） |
 | 智能体 LLM | 真实：DeepSeek `deepseek-flash`（OpenAI 兼容），写操作需人工确认 |
 | 已验证运行环境 | Windows 11 本地：便携 PostgreSQL 16.10 + Redis 5.0.14 + **Mosquitto 2.0.22**（1883）+ JDK 17.0.2 + Node 24 + Python 3.9 venv；Docker 未安装，compose 未验证 |
-| 已通过测试 | 浏览器主链路 **15/15**（tools/acceptance/cow_d1_main.py）；写操作确认机制 **7/7**（cow_d2_agent_confirm.py）；cow-admin 单测 **8 项**（事件幂等/状态机/乐观锁，mvn test）；cow-agent pytest **16 passed**；admin BUILD SUCCESS；web `npm run build` 绿 |
+| 已通过测试 | 浏览器主链路 **15/15**（acceptance/cow_d1_main.py）；写操作确认机制 **7/7**（cow_d2_agent_confirm.py）；cow-admin 单测 **21 项**（事件幂等/状态机/乐观锁/迟到事件/规则引擎等，mvn test）；cow-agent pytest **16 passed**；admin BUILD SUCCESS；web `npm run build` 绿 |
 | 下一阶段入口 | 真实爬跨/跛行模型权重接入（第一阶段资产）、断网 72h 长时演示、Docker 全栈 |
 
 ## 已完成（全部有运行验证证据）
@@ -47,18 +47,18 @@
 | 2 | 智能体对建单较谨慎（需两轮对话/明确指令） | 演示话术需按 README 脚本走 | 机制已验证；话术已写入演示脚本 |
 | 3 | DB 宕机时接口阻塞 ~30s（Hikari）才返回 500 | 极端场景体验 | 可接受，恢复自动可用 |
 | 4 | MQTT 用 Mosquitto 便携版（本地），compose 用 eclipse-mosquitto 镜像 | 部署差异 | compose 未验证 |
-| 5 | cow-agent 对 BearCode vendor 副本有 2 处修复（见验收报告"已修复问题"4/5） | 母版原目录未动 | 已在文档声明 |
+| 5 | cow-agent 嵌入 BearCode 副本（cow-agent/bear/）相对母版有 2 处 bugfix（见验收报告"已修复问题"4/5） | 母版目录零改动；嵌入副本 2 处修复已在验收报告列明 | 已在文档声明 |
 
 ## 验证命令速查
 
 ```bash
 # 构建/测试
-mvn -s tools/settings.xml package                     # cow-admin（含 8 项单测）
+mvn -s tools/settings.xml package                     # cow-admin（含 21 项单测）
 cow-agent/.venv/Scripts/python -m pytest tests/       # 16 项
 npm run build                                         # cow-web
 # 验收
-tools/pw-venv/Scripts/python tools/acceptance/cow_d1_main.py           # 浏览器主链路 15 项
-tools/pw-venv/Scripts/python tools/acceptance/cow_d2_agent_confirm.py  # 写操作确认机制 7 项
+tools/pw-venv/Scripts/python acceptance/cow_d1_main.py           # 浏览器主链路 15 项
+tools/pw-venv/Scripts/python acceptance/cow_d2_agent_confirm.py  # 写操作确认机制 7 项
 # 断网演示
 cow-edge/.venv/Scripts/python simulator.py --mode offline --duration 60 --interval 2
 cow-edge/.venv/Scripts/python simulator.py --mode reconnect

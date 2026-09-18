@@ -183,7 +183,7 @@ python simulator.py --mode reconnect
   13 个核心模块原样拷贝到 `cow-agent/bear/agents/`，领域适配全部通过
   子类化（CowAgent 重写 `_execute_tool_call`）、custom_tools 注入、
   运行时 patch（`app/patch.py`：print_*/spinner no-op、写工具进 confirm、
-  关闭后台 skill 进化）完成，母版原目录未动一行。
+  关闭后台 skill 进化）完成，母版原目录未动一行（嵌入副本含 2 处已在验收报告列明的 bugfix）。
   已知限制：Agent 实例非并发安全（已用 per-session 实例 + asyncio.Lock 隔离）；
   `_auto_save` 每轮全量写盘，演示规模可接受；改 SKILL.md 后需重启 cow-agent
   （skills 为进程级缓存）。
