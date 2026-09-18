@@ -10,7 +10,7 @@
 | AI 模型 | **mock 推理**（cow-ai 返回确定性伪随机结果；第一阶段真实权重待接） |
 | 智能体 LLM | 真实：DeepSeek `deepseek-flash`（OpenAI 兼容），写操作需人工确认 |
 | 已验证运行环境 | Windows 11 本地：便携 PostgreSQL 16.10 + Redis 5.0.14 + **Mosquitto 2.0.22**（1883）+ JDK 17.0.2 + Node 24 + Python 3.9 venv；Docker 未安装，compose 未验证 |
-| 已通过测试 | 浏览器主链路 **15/15**（acceptance/cow_d1_main.py）；写操作确认机制 **7/7**（cow_d2_agent_confirm.py）；cow-admin 单测 **21 项**（事件幂等/状态机/乐观锁/迟到事件/规则引擎等，mvn test）；cow-agent pytest **16 passed**；admin BUILD SUCCESS；web `npm run build` 绿 |
+| 已通过测试 | 浏览器主链路 **15/15**（acceptance/cow_d1_main.py）；写操作确认机制 **7/7**（cow_d2_agent_confirm.py）；cow-admin 单测 **43 项**（事件幂等/状态机/乐观锁/迟到事件/规则引擎/心跳在线翻转/JWT/智能体审计等，mvn test）；cow-agent pytest **16 passed**；admin BUILD SUCCESS；web `npm run build` 绿（vue-tsc type-check 0 错误，已接入 build 前置） |
 | 下一阶段入口 | 真实爬跨/跛行模型权重接入（第一阶段资产）、断网 72h 长时演示、Docker 全栈 |
 
 ## 已完成（全部有运行验证证据）
@@ -26,7 +26,7 @@
 9. **牧场智能体**：多轮对话（上下文记忆实测）、只读工具查询（档案/时间线/事件/孪生/工单/设备）、SOP 命中（mounting-review 等）、**高风险写操作人工确认**（模型提意图 → 系统拦截 park → 前端弹窗 → 批准执行 → 工单落库）；
 10. 操作审计：智能体对话落 agent_session/agent_message 表；
 11. 平台单测与构建全绿；git 建仓。
-12. 面试官视角强化（2026-09-18）：**cow-admin 核心机制单测补齐至 21 项**（TwinUpdater 迟到不回退/置信度门控/乐观锁重试、TaskRuleEngine 24h 收敛与设备去重、Outbox 降级，mvn test 全绿）；README 挂 4 张真实运行截图与验收记录索引；断网心跳 OFFLINE/ONLINE 翻转完成浏览器实证（60s 窗口，截图留证）。
+12. 面试官视角强化（2026-09-18）：**cow-admin 核心机制单测补齐至 43 项**（TwinUpdater 迟到不回退/置信度门控/乐观锁重试、TaskRuleEngine 24h 收敛与设备去重、Outbox 降级，新增设备 60s 心跳在线翻转/401 凭证、JWT 签发/过期/篡改、智能体审计落库与审批转发、MQTT 批量隔离，mvn test 全绿）；README 挂 4 张真实运行截图与验收记录索引；断网心跳 OFFLINE/ONLINE 翻转完成浏览器实证（60s 窗口，截图留证）；验收脚本入库 acceptance/；新增 GitHub Actions CI（admin mvn test / agent·ai pytest / web build 含 vue-tsc 前置）。
 
 ## 正在开发（下一阶段）
 
@@ -53,7 +53,7 @@
 
 ```bash
 # 构建/测试
-mvn -s tools/settings.xml package                     # cow-admin（含 21 项单测）
+mvn -s tools/settings.xml package                     # cow-admin（含 43 项单测）
 cow-agent/.venv/Scripts/python -m pytest tests/       # 16 项
 npm run build                                         # cow-web
 # 验收
