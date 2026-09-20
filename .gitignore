@@ -22,4 +22,8 @@ cow-web/dist/
 # ---- 验收补齐 ----
 cow-admin/target/
 cow-edge/*.db
-cow-agent/agent-home/
+# agent-home 整体视为运行时目录，但 .bear/skills 是领域 skill 资产（CI 测试依赖），必须入库
+cow-agent/agent-home/*
+!cow-agent/agent-home/.bear/
+cow-agent/agent-home/.bear/*
+!cow-agent/agent-home/.bear/skills/
