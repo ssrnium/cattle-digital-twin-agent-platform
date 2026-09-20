@@ -512,6 +512,139 @@ evidence_ref / raw
 - 支持多牧场管理与跨场区分析
 - 扩展更多牧场 SOP Skills 与业务工具
 
+## Agent Runtime 执行架构
+
+AI 助手链路的分层执行框架如下，图中每个组件都对应仓库中的真实模块：
+
+```mermaid
+flowchart TB
+    USER[用户<br/>场长 / 兽医 / 繁育员] --> GW
+
+    subgraph ADMIN[cow-admin · Agent Gateway 层]
+        GW[AgentController<br/>鉴权 agent:chat · 代理转发 · 审计落库]
+        AUDIT[(agent_session / agent_message<br/>会话与消息审计)]
+        GW --> AUDIT
+    end
+
+    GW -->|REST /api/v1/agent| MGR
+
+    subgraph COWAGENT[cow-agent · 领域智能体服务]
+        MGR[AgentManager<br/>per-session 实例池 + asyncio.Lock]
+        LOOP[Agent Loop<br/>推理 → 工具规划 → 权限检查 → 执行 → 结果回写]
+        MGR --> LOOP
+        LOOP --> REG
+        subgraph REG[Tool Registry · 7 个领域工具]
+            RO[6 个只读工具<br/>自动放行]
+            WO[create_work_order<br/>写操作 · 拦截 park]
+        end
+        LOOP --> MEM[Memory<br/>会话记忆折叠 compact]
+        LOOP --> SKILLS[Skills<br/>mounting-review 等领域 SOP]
+        WO --> PARK[confirm park<br/>asyncio.Future · 120s 超时自动拒绝]
+    end
+
+    PARK -->|/sessions 轮询 · /confirm 审批| GW
+    REG -->|httpx 回调 · svc-agent JWT| BIZ[cow-admin 业务 REST<br/>cows / events / timeline / tasks / twin / devices]
+    LOOP --> LLM[LLM<br/>OpenAI 兼容协议]
+```
+
+- **Agent Gateway（cow-admin）**：`AgentController` 统一承接 AI 助手请求，`@PreAuthorize('agent:chat')` 鉴权、转发 cow-agent，并把每一轮会话与消息（含 token 用量）写入 `agent_session` / `agent_message` 审计表（`AgentController.java:41-64`）。确认请求不 park 在 admin，只转发审批结果。
+- **Agent Loop（cow-agent）**：BearCode Agent Runtime 驱动「推理 → 工具规划 → 权限检查 → 执行 → 结果回写」循环（`bear/agents/agent.py` 的 `run_once`），`CowAgent` 子类额外记录每轮工具调用轨迹随响应返回（`cow-agent/app/cow_agent.py:50-61`）。
+- **权限检查**：`check_permission` 区分只读放行与写操作拦截，`create_work_order` 被 patch 为必走 confirm（`cow-agent/app/patch.py:61-75`），park 到 `asyncio.Future` 等待前端审批，120 秒超时自动拒绝（`cow-agent/app/agent_manager.py:87-100`）。
+- **Memory / Skills**：会话记忆折叠（`bear/agents/session_memory.py`）与领域 SOP Skills（`cow-agent/agent-home/.bear/skills/`）注入推理上下文；`AGENT_HOME` 为运行目录，启动时 chdir 固定（`cow-agent/app/main.py:24-31`）。
+
+## 领域工具 Schema
+
+7 个领域工具以 Function Calling schema 注入模型，全部通过 httpx 回调 cow-admin 业务 REST（`cow-agent/app/cow_tools.py:99-171`）。说明文字为 schema 中 `description` 原文：
+
+| name | 说明 | 关键参数 | 权限级别 |
+| --- | --- | --- | --- |
+| `query_cow_profile` | 查询单头奶牛的档案与当前数字孪生状态（姿态/区域/健康/发情推断）。 | `cow_id`（必填，如 COW-0042） | 只读 · 自动放行 |
+| `query_cow_timeline` | 查询单头奶牛的时间线（事件与状态推断记录，按发生时间倒序）。 | `cow_id`（必填）、`limit`（默认 20，最大 100） | 只读 · 自动放行 |
+| `list_events` | 分页查询 AI 事件流（爬跨 MOUNTING / 跛行 LAMENESS / 设备离线 DEVICE_OFFLINE 等）。 | `event_type` / `cow_id` / `device_id` / `page` / `size`（均可选） | 只读 · 自动放行 |
+| `get_twin_states` | 获取全棚奶牛的当前数字孪生状态列表。 | 无参数 | 只读 · 自动放行 |
+| `list_work_orders` | 分页查询告警工单（繁殖复核 BREEDING_REVIEW / 兽医检查 VET_CHECK / 设备维修 DEVICE_REPAIR）。 | `state` / `type` / `page` / `size`（均可选） | 只读 · 自动放行 |
+| `list_devices` | 查询摄像头与边缘节点列表（在线状态为 60s 心跳计算属性，含断网时长与待补传数）。 | 无参数 | 只读 · 自动放行 |
+| `create_work_order` | 【写操作，需用户确认】手工创建告警工单。调用前必须向用户说明创建理由。 | `type`、`description`（必填）；`cow_id` / `device_id` / `source_event_id` / `priority`（可选） | **写操作 · 需人工确认** |
+
+所有工具返回给模型的都是字符串（JSON 或友好错误），HTTP 超时 10 秒，service 账号 token 401 时自动重登重试一次（`cow-agent/app/cow_tools.py:24, 69-71`）。
+
+## Agent 决策回路
+
+```mermaid
+flowchart LR
+    MQTT[MQTT 事件流<br/>cow-edge / cow-ai] --> INGEST[EventIngestService<br/>schema 校验 · event_id 幂等去重]
+    INGEST --> TWIN[TwinUpdater<br/>孪生状态更新 + 时间线追加]
+    INGEST --> RULE[TaskRuleEngine<br/>确定性告警工单]
+    TWIN --> OBS[(数字孪生状态<br/>Agent 的 Observation)]
+    ASK[用户提问] --> AGENT[Agent 推理<br/>命中 Skills SOP]
+    OBS --> AGENT
+    AGENT --> SEL[工具选择]
+    SEL -->|只读工具| EXEC[自动执行<br/>httpx 回调 cow-admin]
+    SEL -->|写工具 create_work_order| CONFIRM{人工确认<br/>120s 窗口}
+    CONFIRM -->|批准| EXEC2[cow-admin 确定性执行<br/>工单状态机 + 乐观锁]
+    CONFIRM -->|拒绝 / 超时| CANCEL[取消写操作<br/>保留文字建议]
+    EXEC --> AUDIT2[审计落库<br/>agent_session / agent_message]
+    EXEC2 --> AUDIT2
+    CANCEL --> AUDIT2
+```
+
+以「复核 COW-0042 这次爬跨要不要安排配种」为例，Agent 命中 `mounting-review` SOP 后严格按流程执行（`cow-agent/agent-home/.bear/skills/mounting-review/SKILL.md`），每步都用工具取数、禁止跳步：
+
+1. **查档案**：`query_cow_profile(cow_id="COW-0042")`，确认牛只状态（ACTIVE 与否）、所在区域、当前孪生状态中的 `estrus_status` / `health_status` 推断值。
+2. **查近期爬跨事件**：`list_events(event_type="MOUNTING", cow_id="COW-0042")`，关注事件数量与时间分布（21 天左右的发情周期是否复现）与 `confidence` 置信度（低置信度提醒人工查看 `evidence_ref` 视频片段）。
+3. **查时间线**：`query_cow_timeline(cow_id="COW-0042")`，对照历史爬跨 / 配种 / 妊检记录，判断本次是否符合发情周期规律。
+4. **给复核建议**：结论（疑似发情成立 / 证据不足 / 疑似误报）必须引用具体 `cow_id`、`event_id`；如需创建工单，先说明理由再调用 `create_work_order`（写操作，等用户确认）。
+5. **确认与执行**：写工具被拦截 park，前端弹窗展示工具名、参数和理由；批准后由 cow-admin 确定性执行并落库，拒绝或 120 秒未审批则自动取消。
+
+## 失败处理设计
+
+| 失败场景 | 处理策略 | 代码出处 |
+| --- | --- | --- |
+| LLM 未配置 API Key | chat 前置校验，返回 503 并提示配置方式 | `cow-agent/app/agent_manager.py:72-74`、`cow-agent/app/main.py:55-56` |
+| LLM / 智能体调用异常 | 兜底为 HTTP 502「智能体调用失败」，不向客户端抛堆栈 | `cow-agent/app/main.py:57-59` |
+| 写操作 120 秒未审批 | `asyncio.wait_for` 超时自动拒绝，pending 清理后会话恢复可用 | `cow-agent/app/agent_manager.py:95-100`、`cow-agent/app/config.py:24` |
+| 用户拒绝写操作 | confirm 返回 False，工具结果以「User denied this action.」回写模型，Agent 转为保留文字建议 | `cow-agent/bear/agents/agent.py:1449` |
+| 领域工具调用失败 | `ToolError` 转为友好错误字符串返回给模型；任何未预期异常兜底为「Error: 工具执行异常」，不抛穿 Agent Loop | `cow-agent/app/cow_tools.py:88-89、182-194` |
+| cow-admin 不可达 / 超时 | httpx 超时 10 秒；连接失败返回「无法连接 cow-admin」友好错误 | `cow-agent/app/cow_tools.py:24、67-68` |
+| service 账号 token 过期 | 401 自动重登并重试一次 | `cow-agent/app/cow_tools.py:69-71` |
+| cow-agent 宕机 / 不可达 | admin 侧降级为 `BizException(502)`；该路径已被单测 `agentDownMapsTo502BizException` 覆盖 | `cow-admin/.../agent/service/AgentServiceClient.java:48, 61`、`cow-admin/.../agent/service/AgentServiceClientTest.java:73-77` |
+| admin 等待 agent 响应超时 | RestClient read 超时 150 秒，覆盖 120 秒确认等待窗口 | `cow-admin/.../agent/service/AgentServiceClient.java:25` |
+| 输入 / 输出校验 | 空消息 400；对无 pending 会话重复 confirm 返回 404；事件接入校验 `schema_version` | `cow-agent/app/main.py:51-52、68`、`cow-admin/.../event/service/EventIngestService.java:51-54` |
+| 迟到事件 | 只追加时间线，不回退当前孪生快照 | `cow-admin/.../twin/TwinUpdater.java:73-79` |
+
+## 数字孪生状态对象
+
+单牛数字孪生当前状态持久化在 `twin_state` 表（`cow-admin/src/main/resources/db/schema.sql:76-84`），`state` 为 JSONB，内容约定见 `TwinState.java:13-16`：
+
+```json
+{
+  "cow_id": "COW-0042",
+  "state": {
+    "posture": "UNKNOWN",
+    "zone": "ZONE-B",
+    "health_status": "NORMAL",
+    "estrus_status": "SUSPECTED_HEAT"
+  },
+  "state_nature": "INFERRED",
+  "source_event_id": "<触发本次状态变更的 event_id>",
+  "event_time": "2026-09-14T15:44:45",
+  "version": 7,
+  "updated_at": "2026-09-14T15:44:45"
+}
+```
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `cow_id` | VARCHAR(32) PK | 牛只编号 |
+| `state` | JSONB | 状态键值：`posture` / `zone` / `health_status`（NORMAL \| LAMENESS_RISK）/ `estrus_status`（NORMAL \| SUSPECTED_HEAT） |
+| `state_nature` | VARCHAR(16) | 状态性质：MEASURED / INFERRED / MANUAL |
+| `source_event_id` | VARCHAR(64) | 触发本次状态变更的来源事件 |
+| `event_time` | TIMESTAMP | 来源事件的发生时间（迟到判定基准） |
+| `version` | INT | 乐观锁版本号，冲突时有限重试 3 次 |
+| `updated_at` | TIMESTAMP | 状态最后更新时间 |
+
+更新规则由 `TwinUpdater` 实现（`cow-admin/.../twin/TwinUpdater.java:20-28`）：`MOUNTING` 高置信（confidence ≥ 0.8）→ `estrus_status = SUSPECTED_HEAT`；`LAMENESS` → `health_status = LAMENESS_RISK`；`DEVICE_*` 事件不改变牛只状态；每个牛只相关事件都追加 `CowTimeline`。**迟到事件（`event_time` 早于当前状态对应的事件时间）只追加时间线，不回退快照**，避免断网补传的旧事件覆盖实时状态（`TwinUpdater.java:73-79`）。
+
 ## 一句话总结
 
 > 本项目构建了一套由自研 BearCode Agent Runtime 驱动的 AI 全栈智慧牧场平台，将 Agent 推理能力与数字孪生业务系统结合，实现从边缘数据采集、业务流程管理到智能决策辅助的完整闭环。
