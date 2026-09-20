@@ -4,6 +4,8 @@
 
 ## 运行实景（真实运行截取）
 
+![演示 GIF（55 秒全流程：登录 → 暗色看板 → 3D 孪生选牛 → 设备状态 → AI 助手真实对话，2026-09-20 录制）](docs/screenshots/demo-cow-20260920.gif)
+
 | 数据看板 | 牛棚孪生图（103 头牛状态变色） |
 | --- | --- |
 | ![数据看板](docs/screenshots/cow-02-dashboard.png) | ![牛棚孪生图](docs/screenshots/cow-03-barn.png) |
