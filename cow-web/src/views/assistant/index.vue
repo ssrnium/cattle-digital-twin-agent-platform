@@ -99,7 +99,7 @@ let pollTimer: number | undefined
 // 会话列表轮询：chat 阻塞期间发现 pending_confirmation 即弹审批框
 async function refreshSessions() {
   try {
-    const resp = await agentSessions()
+    const resp = await agentSessions(true)
     sessions.value = resp.sessions
     const current = resp.sessions.find((s) => s.session_id === sessionId.value)
     if (current?.pending_confirmation) {

@@ -102,7 +102,7 @@ const currentTitle = computed(() => (route.meta?.title as string) || '总览看�
 // 读取真实 agent 会话接口做底卡装饰；无权限或服务未起时静默降级为静态文案
 async function loadAgentStatus() {
   try {
-    const resp = await agentSessions()
+    const resp = await agentSessions(true)
     const pending = resp.sessions.filter((s) => s.pending_confirmation).length
     agentStatusText.value = pending > 0
       ? `${resp.sessions.length} 个会话 · ${pending} 待审批`

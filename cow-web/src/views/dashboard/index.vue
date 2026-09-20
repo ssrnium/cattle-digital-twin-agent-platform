@@ -182,7 +182,7 @@ async function loadAlerts() {
 
 async function loadAgentSessions() {
   try {
-    const resp = await agentSessions()
+    const resp = await agentSessions(true)
     agentList.value = resp.sessions
       .slice()
       .sort((a, b) => b.last_active - a.last_active)

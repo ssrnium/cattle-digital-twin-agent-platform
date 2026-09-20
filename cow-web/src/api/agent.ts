@@ -36,6 +36,6 @@ export function agentConfirm(sessionId: string, approved: boolean) {
   return post<{ ok: boolean; approved: boolean }>('/agent/confirm', { session_id: sessionId, approved })
 }
 
-export function agentSessions() {
-  return get<{ sessions: AgentSession[] }>('/agent/sessions')
+export function agentSessions(silent = false) {
+  return get<{ sessions: AgentSession[] }>('/agent/sessions', undefined, { silent })
 }

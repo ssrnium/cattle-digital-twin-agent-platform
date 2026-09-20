@@ -3,6 +3,13 @@ import type { AxiosInstance, AxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    /** 静默请求：失败时拦截器不弹全局错误提示（用于轮询/装饰性调用） */
+    silent?: boolean
+  }
+}
+
 export interface Result<T = any> {
   code: number
   message: string
@@ -38,7 +45,9 @@ request.interceptors.response.use(
       if (body.code === 200) {
         return body.data
       }
-      ElMessage.error(body.message || '请求失败')
+      if (!response.config.silent) {
+        ElMessage.error(body.message || '请求失败')
+      }
       return Promise.reject(new Error(body.message))
     }
     return body
@@ -53,15 +62,15 @@ request.interceptors.response.use(
       }
     } else if (status === 409) {
       ElMessage.error(error.response?.data?.message || '数据已被他人修改，请刷新后重试')
-    } else {
+    } else if (!error.config?.silent) {
       ElMessage.error(error.response?.data?.message || error.message || '网络异常')
     }
     return Promise.reject(error)
   }
 )
 
-export function get<T = any>(url: string, params?: Record<string, any>): Promise<T> {
-  return request.get(url, { params }) as unknown as Promise<T>
+export function get<T = any>(url: string, params?: Record<string, any>, config?: AxiosRequestConfig): Promise<T> {
+  return request.get(url, { params, ...config }) as unknown as Promise<T>
 }
 
 export function post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
