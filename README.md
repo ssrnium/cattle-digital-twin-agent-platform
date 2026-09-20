@@ -4,7 +4,7 @@
 
 ## 运行实景（真实运行截取）
 
-![演示 GIF（55 秒全流程：登录 → 暗色看板 → 3D 孪生选牛 → 设备状态 → AI 助手真实对话，2026-09-20 录制）](docs/screenshots/demo-cow-20260920.gif)
+![平台演示（55 秒 GIF：登录 → 总览看板 → 3D 孪生选牛 → 设备状态 → AI 助手）](docs/screenshots/demo-cow-20260920.gif)
 
 | 数据看板 | 牛棚孪生图（103 头牛状态变色） |
 | --- | --- |
@@ -14,15 +14,15 @@
 | --- | --- |
 | ![写操作确认](docs/screenshots/cow-08b-agent-confirm.png) | ![设备在线](docs/screenshots/cow-device-online.png) |
 
-| 总览看板·暗色大屏（09-20 换肤） | 牛棚 3D 孪生场景（09-20 Three.js 升级） |
+| 总览看板 · 暗色大屏 | 牛棚 3D 数字孪生场景 |
 | --- | --- |
 | ![暗色总览看板](docs/screenshots/dashboard-dark.png) | ![牛棚 3D 孪生](docs/screenshots/barn-3d-twin.png) |
 
-| 设备离线翻转实证（60s 心跳阈值） | AI 助手真实对话与工具轨迹 |
+| 设备离线自动翻转（60 秒心跳阈值） | AI 助手对话与工具调用轨迹 |
 | --- | --- |
-| ![设备离线翻转](docs/screenshots/cow-device-offline.png) | ![AI 助手](docs/screenshots/assistant-dark.png) |
+| ![设备离线自动翻转](docs/screenshots/cow-device-offline.png) | ![AI 助手](docs/screenshots/assistant-dark.png) |
 
-> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 43 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`；验收脚本见 `acceptance/`；设备心跳 OFFLINE→ONLINE→OFFLINE 翻转实证（2026-09-20，`acceptance/cow_device_flip.py`，停跳 75s 后离线并累计断网时长）。
+> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 43 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`；验收脚本见 `acceptance/`；设备心跳 OFFLINE→ONLINE→OFFLINE 翻转可由 `acceptance/cow_device_flip.py` 复现。
 
 ## 项目定位
 
