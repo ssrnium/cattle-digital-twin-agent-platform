@@ -10,7 +10,7 @@
 | AI 模型 | **mock 推理**（cow-ai 返回确定性伪随机结果；第一阶段真实权重待接） |
 | 智能体 LLM | 真实：DeepSeek `deepseek-flash`（OpenAI 兼容），写操作需人工确认 |
 | 已验证运行环境 | Windows 11 本地：便携 PostgreSQL 16.10 + Redis 5.0.14 + **Mosquitto 2.0.22**（1883）+ JDK 17.0.2 + Node 24 + Python 3.9 venv；Docker 未安装，compose 未验证 |
-| 已通过测试 | 浏览器主链路 **15/15**（acceptance/cow_d1_main.py）；写操作确认机制 **7/7**（cow_d2_agent_confirm.py）；cow-admin 单测 **43 项**（事件幂等/状态机/乐观锁/迟到事件/规则引擎/心跳在线翻转/JWT/智能体审计等，mvn test）；cow-agent pytest **16 passed**；admin BUILD SUCCESS；web `npm run build` 绿（vue-tsc type-check 0 错误，已接入 build 前置） |
+| 已通过测试 | 浏览器主链路 **15/15**（acceptance/cow_d1_main.py）；写操作确认机制 **7/7**（cow_d2_agent_confirm.py，审批下沉后复跑）；cow-admin 单测 **64 项**（事件幂等/状态机/乐观锁/迟到事件/规则引擎/心跳在线翻转/JWT/智能体审计/审批下沉强制点等，mvn test）；cow-agent pytest **21 passed**；admin BUILD SUCCESS；web `npm run build` 绿（vue-tsc type-check 0 错误，已接入 build 前置） |
 | 下一阶段入口 | 真实爬跨/跛行模型权重接入（第一阶段资产）、断网 72h 长时演示、Docker 全栈 |
 
 ## 已完成（全部有运行验证证据）
@@ -30,6 +30,7 @@
 13. 前端全面升级与翻转实证（2026-09-20，参考高保真样稿 smart-ranch-digital-twin 仿写）：**全局暗色大屏设计体系**（设计 token + Element Plus 暗色变量 + 玻璃拟态侧边栏/顶栏，权限过滤与路由守卫零改动）、**Dashboard 重构**（KPI/事件趋势/健康环图/异常预警/Agent 会话面板，全部真实接口数据，无虚构）、**登录页换壳**（品牌叙事+玻璃登录卡，真实登录逻辑保留）、**AI 助手气泡升级**（trace-step 工具轨迹 + thinking 动画，审批弹窗与轮询不动）、**牛棚孪生页 Three.js 3D 升级**（InstancedMesh 承载 103 头牛按轮询实时变色，OrbitControls+Raycaster 选牛弹个体卡片跳详情，WebGL 降级保留 SVG，three 路由级动态加载不进主 chunk）、request 拦截器 silent 静默请求抛光（装饰性调用不再弹错误 toast）；**设备心跳翻转全流程实证**（`acceptance/cow_device_flip.py`：OFFLINE(161719s)→心跳→ONLINE→停跳 75s→OFFLINE 并累计断网时长，API 断言 + 页面截图双证据）；新增实证截图 4 张入 docs/screenshots/（暗色看板/3D 孪生/离线翻转/AI 助手），浏览器逐页自检 0 console error。
 14. 审批边界审计与离线生命周期实证（2026-09-20 晚）：**审批边界审计**（`docs/approval_boundary_audit.md`）——确认 svc-agent 可绕过 agent 层审批直连建单（SERVICE 角色含 task:create），审批关卡当前在 cow-agent 工具层；现有四层防线（权限收敛/agent 层闭环/审计落库/批准 exactly-once）与三项缺口如实记录，PENDING_ACTION 下沉方案完成设计备案；**设备离线完整生命周期实证**（`acceptance/cow_offline_lifecycle.py`，10/10）——断网缓存（周期性 DEVICE_OFFLINE HIGH + 心跳 3 连败停用）→ 恢复补传（DEDUP DEMO 重发 13 条全部去重）→ 2 条离线事件只建 1 张 HIGH 维修单 → 状态机全流转关闭 → 再次离线产生新一轮工单 → 同 event_id 重发 duplicated=true 不出单。
 15. 72h 离线缓存容量口径与实测（2026-09-20 深夜）：`docs/offline_cache_72h.md` 定义容量口径——1 设备 × 1 事件/5s × 72h = **51,840 条**，SQLite ≈ 31.4MB（≈636 B/条），演示规模无容量压力故 `wal_buffer` 不设上限，生产多设备按公式线性放大；实测（`acceptance/cow_72h_capacity.py` + `cow-edge/drain_buffer.py`）——等量灌库 51,840 条（HIGH 10,368 / LOW 41,472）→ 断点续传（补传进程 kill 后重跑，"成功才删"语义下无丢失）→ **服务端精确 51,840 条且 `count(DISTINCT event_id)` = 51,840（零重复）** → 抽样 20 个 event_id 重发全部 `duplicated=true`；补传吞吐：16 线程并发 drain 44,980 条用时 308s（146 条/s，0 失败），本地 pending 清零。
+16. **智能体写操作审批下沉为后端强制（PENDING_ACTION）**（2026-09-21，`docs/approval_boundary_audit.md` 第五节）：新表 `pending_action`（action_id 唯一约束，PENDING/APPROVED/REJECTED/EXECUTED/EXPIRED 状态机，120s 有效期）——cow-agent park 前向 admin 注册（发起人按 agent_session 绑定不可伪造，注册失败 fail-closed 拒绝写操作）；`/agent/confirm` 先落审批状态（**批准人=发起人**校验、过期作废、重复审批 409）再转发 cow-agent，转发失败补偿作废；**强制点** `WorkOrderController.create`：SERVICE 角色必须携带 `X-Action-Id`（存在/APPROVED/未过期/参数摘要一致），同事务内建单 + APPROVED→EXECUTED 条件更新（**exactly-once**，重复提交 409 只一张单）；120s 超时 cow-agent 自动拒绝并同步作废凭证。实证：svc-agent 无凭证直连建单 **403**、伪造凭证 **403**；cow-admin 单测 **43→64**、cow-agent pytest **16→21**、`acceptance/cow_d2_agent_confirm.py` **7/7** 复跑全绿（断言未放松）。
 
 ## 正在开发（下一阶段）
 
@@ -56,8 +57,8 @@
 
 ```bash
 # 构建/测试
-mvn -s tools/settings.xml package                     # cow-admin（含 43 项单测）
-cow-agent/.venv/Scripts/python -m pytest tests/       # 16 项
+mvn -s tools/settings.xml package                     # cow-admin（含 64 项单测）
+cow-agent/.venv/Scripts/python -m pytest tests/       # 21 项
 npm run build                                         # cow-web
 # 验收
 tools/pw-venv/Scripts/python acceptance/cow_d1_main.py           # 浏览器主链路 15 项

@@ -1,7 +1,8 @@
 # 智能体写操作审批边界审计（2026-09-20）
 
 > 审计问题：`svc-agent` 是否能够绕过用户确认，直接调用创建工单接口？
-> 结论：**能。** 审批关卡目前只存在于 cow-agent 工具层（`confirm_fn` park），cow-admin 不对 `POST /api/v1/tasks` 校验"是否已获用户批准"。本文记录边界事实、现有防线与下沉方案。
+> 结论：**能。** 审批关卡当时只存在于 cow-agent 工具层（`confirm_fn` park），cow-admin 不对 `POST /api/v1/tasks` 校验"是否已获用户批准"。本文记录边界事实、现有防线与下沉方案。
+> **2026-09-21 更新：下沉方案已实施（见第五节），svc-agent 直连建单已被后端强制拦截（无 X-Action-Id → 403，伪造凭证 → 403，实证见下）。**
 
 ## 一、现状事实（代码为据）
 
@@ -44,3 +45,44 @@ svc-agent 直连 POST /tasks 的路径同步收敛：
 配套测试（第二轮）：正常批准/拒绝/120s 超时/非发起人批准 403/重复批准 409/参数被改拒绝/直连无凭证 403/重启后 pending 可查/批准成功响应中断后重试仍一单（exactly-once 业务效果）。
 
 > 口径说明：本审计把"agent 层已有审批"与"后端强制审批"分开陈述。面试表述应为：**审批闭环已在智能体运行时层实现并验收（7/7），后端强制下沉已审计出边界并完成方案设计**——不声称后端已强制。
+
+## 五、下沉实现（2026-09-21 已落地，方案 A 变体）
+
+审批强制点从"cow-agent 工具层"下沉为 **cow-admin 后端强制**：svc-agent 建单必须携带用户本人批准过的 `X-Action-Id` 凭证，同事务内建单并把凭证置 EXECUTED。
+
+### 链路（实现后）
+
+```text
+Agent 决定建单 → cow-agent park 前向 admin 注册 PENDING_ACTION（POST /api/v1/agent/actions，
+  发起人由 admin 按 agent_session 绑定，svc-agent 无法伪造；注册失败 = fail-closed 直接拒绝该写操作）
+  → 前端弹窗，用户本人调 /agent/confirm：admin 先落 PENDING_ACTION 状态
+    （批准人=发起人校验 / 过期置 EXPIRED / 条件更新防重复审批 409），再转发 cow-agent 放行；
+    转发失败（park 已超时消失）时 APPROVED 凭证补偿作废，不留悬空
+  → cow-agent 执行 create_work_order 时携带 X-Action-Id（ContextVar 同 task 透传）
+  → WorkOrderController 强制点：SERVICE 角色必须携带凭证；校验 存在/状态=APPROVED/未过期/参数摘要一致，
+    同事务内建单 + APPROVED→EXECUTED 条件更新（0 行 = 并发重复 → 409 回滚，exactly-once）
+120s 超时：cow-agent 自动拒绝并调 /agent/actions/{id}/expire 同步作废凭证
+```
+
+### 落点
+
+| 项 | 位置 |
+| --- | --- |
+| `pending_action` 表（action_id 唯一约束） | `cow-admin/src/main/resources/db/schema.sql`（启动自动建表） |
+| 实体 / Mapper / 注册·审批·校验服务 | `cow-admin/.../modules/agent/{entity/PendingAction, mapper/PendingActionMapper, service/PendingActionService, service/ActionDigest}.java` |
+| 注册/作废端点 + confirm 审批下沉 | `cow-admin/.../agent/controller/AgentController.java`（`/agent/actions`、`/agent/actions/{id}/expire`、`/agent/confirm`） |
+| **强制点**：SERVICE 角色建单凭证校验 + 事务内 EXECUTED | `cow-admin/.../task/controller/WorkOrderController.java#create` + `task/service/WorkOrderService.java#createByAgent` |
+| cow-agent：park 注册（fail-closed）/ X-Action-Id 透传 / 超时 expire | `cow-agent/app/agent_manager.py#_park_confirm`、`cow-agent/app/cow_tools.py`（`register_action`/`expire_action`/`current_action_id`） |
+
+### 三项缺口的关闭情况
+
+1. **审批未下沉** → 已关闭：svc-agent 无 `X-Action-Id` 直连 `POST /tasks` → 403「智能体建单必须携带审批凭证」；伪造凭证 → 403「无效审批凭证」（HTTP 实证）。
+2. **admin 层无幂等键** → 已关闭：`action_id` 唯一约束 + APPROVED→EXECUTED 单次条件迁移，重复提交 409 且只一张单。
+3. **批准人=发起人未绑定** → 已关闭：`/agent/confirm` 校验当前登录人 = action.username，不匹配 403。
+
+### 测试清单（全绿）
+
+- **cow-admin 单测 64 项**（43 → 64，新增 21：`PendingActionServiceTest` 11 项：注册绑定发起人/未知会话 400/非发起人 403/过期作废/正常批准/重复审批 409/EXECUTED 重放 409/未批准 403/批准后过期 403/摘要不符 403/digest 篡改检测；`WorkOrderServiceTest` +5：无凭证 403/正常建单+EXECUTED/REJECTED 拦截/摘要不符拦截/并发重复 409；`WorkOrderControllerTest` 2：SERVICE 分流/人工不受影响；`AgentControllerTest` +3：confirm 先落状态再转发/转发失败补偿作废/注册端点）；
+- **cow-agent pytest 21 项**（16 → 21，新增 5：park 注册+放行凭证写入 ContextVar/注册失败 fail-closed/超时同步 expire/非领域写工具跳过注册/建单请求携带 X-Action-Id 头）；
+- **端到端 `acceptance/cow_d2_agent_confirm.py` 7/7**（admin 代理完整确认流复跑，断言未放松）；
+- HTTP 实证：svc-agent 无凭证直连 403、伪造凭证 403。
