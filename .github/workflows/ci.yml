@@ -1,10 +1,16 @@
 name: ci
 
+# CI 分层口径（指标分层陈述，不把单测数/评测样本数/浏览器场景数混加为大数字）：
+# - 第 1 层（本 workflow，push/PR 自动跑）：快速检查 = 各模块单测 + 前端 type-check 构建；
+# - 第 2 层（本地/手动）：集成验收——acceptance/ 下 d1 主链路、d2 写操作确认、cow_offline_lifecycle、
+#   cow_72h_capacity、cow_mqtt_http_dedup、cow_device_flip 等（需本地起 PostgreSQL/Redis/Mosquitto/四服务）；
+# - 第 3 层（本地/手动）：需真实 LLM Key 的智能体对话与演示录制——不接受外部模型波动阻塞 PR。
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   cow-admin:
