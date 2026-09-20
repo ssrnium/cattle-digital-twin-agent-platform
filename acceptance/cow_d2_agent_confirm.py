@@ -4,10 +4,10 @@
      → /confirm 批准 → 工具真正执行 → work_order 落库。
 运行：tools/pw-venv/Scripts/python.exe tools/acceptance/cow_d2_agent_confirm.py
 """
-import httpx, time, json, threading, subprocess, sys
+import httpx, time, json, threading, subprocess, sys, os
 
 ADMIN = "http://127.0.0.1:8081"
-PSQL = r"<user-home>\pgsql16\bin\psql.exe"
+PSQL = os.environ.get("PSQL", "psql")  # 便携 PostgreSQL 可用环境变量指定全路径
 RESULTS = []
 
 def check(name, cond, extra=""):

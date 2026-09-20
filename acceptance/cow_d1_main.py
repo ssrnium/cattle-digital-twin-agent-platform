@@ -4,13 +4,13 @@
 前置：PG(cow_db)/Redis/mosquitto/cow-admin(8081,MQTT开)/cow-ai(8001)/cow-agent(8003)/cow-web(5174) 全部在跑，
      且 simulator 已产生过事件（库内有事件/工单/孪生数据）。
 """
-import subprocess, sys, time, pathlib
+import subprocess, sys, time, pathlib, os
 from playwright.sync_api import sync_playwright
 
 BASE = "http://localhost:5174"
 SHOTS = pathlib.Path(__file__).parent.parent / "logs" / "shots"
 SHOTS.mkdir(parents=True, exist_ok=True)
-PSQL = r"<user-home>\pgsql16\bin\psql.exe"
+PSQL = os.environ.get("PSQL", "psql")  # 便携 PostgreSQL 可用环境变量指定全路径
 
 RESULTS = []
 def check(name, cond, extra=""):
