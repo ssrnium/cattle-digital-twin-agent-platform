@@ -2,27 +2,23 @@
 
 > 面向智慧养殖场景的 AI 全栈应用平台，融合数字孪生、物联网事件处理、自研 Agent Runtime 与智能决策能力，构建从边缘数据采集、状态管理到 AI 辅助决策的完整业务闭环。
 
-## 运行实景（真实运行截取）
+## 运行实景
 
 ![平台演示（55 秒 GIF：登录 → 总览看板 → 3D 孪生选牛 → 设备状态 → AI 助手）](docs/screenshots/demo-cow-20260920.gif)
 
-| 数据看板 | 牛棚孪生图（103 头牛状态变色） |
-| --- | --- |
-| ![数据看板](docs/screenshots/cow-02-dashboard.png) | ![牛棚孪生图](docs/screenshots/cow-03-barn.png) |
-
-| 智能体写操作人工确认弹窗 | 设备在线状态（心跳驱动） |
-| --- | --- |
-| ![写操作确认](docs/screenshots/cow-08b-agent-confirm.png) | ![设备在线](docs/screenshots/cow-device-online.png) |
-
 | 总览看板 · 暗色大屏 | 牛棚 3D 数字孪生场景 |
 | --- | --- |
-| ![暗色总览看板](docs/screenshots/dashboard-dark.png) | ![牛棚 3D 孪生](docs/screenshots/barn-3d-twin.png) |
+| ![总览看板](docs/screenshots/dashboard-dark.png) | ![牛棚 3D 数字孪生场景](docs/screenshots/barn-3d-twin.png) |
 
-| 设备离线自动翻转（60 秒心跳阈值） | AI 助手对话与工具调用轨迹 |
+| 写操作人工确认 | AI 助手对话与工具调用轨迹 |
 | --- | --- |
-| ![设备离线自动翻转](docs/screenshots/cow-device-offline.png) | ![AI 助手](docs/screenshots/assistant-dark.png) |
+| ![写操作人工确认](docs/screenshots/cow-08b-agent-confirm.png) | ![AI 助手对话与工具调用轨迹](docs/screenshots/assistant-dark.png) |
 
-> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 43 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`；验收脚本见 `acceptance/`；设备心跳 OFFLINE→ONLINE→OFFLINE 翻转可由 `acceptance/cow_device_flip.py` 复现。
+| 设备在线状态监测（60 秒心跳阈值） | 设备离线自动标记与断网时长 |
+| --- | --- |
+| ![设备在线状态监测](docs/screenshots/cow-device-online.png) | ![设备离线自动标记](docs/screenshots/cow-device-offline.png) |
+
+> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 43 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`；验证脚本见 `acceptance/`；设备心跳在线状态切换可由 `acceptance/cow_device_flip.py` 复现。
 
 ## 项目定位
 
@@ -372,7 +368,7 @@ docker compose --profile demo up -d cow-edge
 
 ### 本地开发
 
-> **无 Docker 环境实测路径（2026-09-14 验收通过）**：便携 PostgreSQL 16.10（建库 `cow_db`）+ 便携 Redis 5.0.14 + Mosquitto 2.0.22 便携版（`mosquitto -c acceptance.conf`，匿名监听 1883）即可满足全部依赖；MQTT 链路默认 `MQTT_ENABLED=true` 时生效。
+> **无 Docker 本地运行路径**：便携 PostgreSQL 16.10（建库 `cow_db`）+ 便携 Redis 5.0.14 + Mosquitto 2.0.22 便携版（`mosquitto -c acceptance.conf`，匿名监听 1883）即可满足全部依赖；MQTT 链路默认 `MQTT_ENABLED=true` 时生效。
 
 | 模块 | 启动命令 |
 | --- | --- |
@@ -397,7 +393,7 @@ docker compose --profile demo up -d cow-edge
 
 边缘节点 `edge-node-01` 的演示用 `deviceKey` 为 `edge-node-01-secret-2026`。HTTP 上报通过 `X-Device-Key` 请求头传递，心跳通过请求体内的 `deviceKey` 传递。生产部署必须更换此凭证。
 
-## 演示与验收
+## 演示与验证
 
 ### 断网恢复演示
 
@@ -501,11 +497,11 @@ evidence_ref / raw
 | 三维模型资产（glTF） | 在 `cow-web/src/views/barn/index.vue` 的 Three.js 升级插入点替换 SVG 渲染层，数据层保持不变 |
 | 完整事件契约 | 扩展 `UnifiedEvent.java` 与 `db/schema.sql` 中的 `unified_event` 表，并同步提升 `schema_version` |
 
-## 当前范围与验收标准
+## 当前范围与验证标准
 
-当前版本锁定在 20 号牛棚、103 头奶牛、`MOUNTING` 与 `LAMENESS` 两类 AI 事件，覆盖数字孪生状态、告警工单闭环、摄像头与边缘节点在线状态、断网缓存恢复和牛棚二维可视化。
+当前版本锁定在 20 号牛棚、103 头奶牛、`MOUNTING` 与 `LAMENESS` 两类 AI 事件，覆盖数字孪生状态、告警工单闭环、摄像头与边缘节点在线状态、断网缓存恢复和牛棚可视化。
 
-主要验收标准：
+主要验证标准：
 
 - 结构化事件离线缓存不少于 72 小时
 - 基于 `event_id` 幂等去重，重复告警为 0
