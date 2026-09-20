@@ -21,26 +21,32 @@
           向牧场智能体提问，例如：「COW-0042 今天什么情况？」
         </div>
         <div v-for="(m, i) in messages" :key="i" class="msg-row" :class="m.role">
+          <div class="message-avatar">{{ m.role === 'assistant' ? 'AI' : '我' }}</div>
           <div class="bubble">
             <div class="content">{{ m.content }}</div>
-            <el-collapse v-if="m.trace && m.trace.length" class="trace">
-              <el-collapse-item :title="`工具调用轨迹（${m.trace.length} 次）`">
-                <div v-for="(t, j) in m.trace" :key="j" class="trace-item">
-                  <div class="trace-head">
-                    <el-tag size="small" :type="t.tool === 'create_work_order' ? 'danger' : 'info'">
-                      {{ t.tool }}
-                    </el-tag>
-                  </div>
-                  <pre>{{ JSON.stringify(t.arguments, null, 2) }}</pre>
-                  <pre class="trace-result">{{ t.result_preview }}</pre>
+            <div v-if="m.trace && m.trace.length" class="tool-trace">
+              <div class="trace-title"><span>Agent 执行轨迹</span><small class="mono">{{ m.trace.length }} 次工具调用</small></div>
+              <div v-for="(t, j) in m.trace" :key="j" class="trace-item">
+                <div class="trace-step">
+                  <i>✓</i><span class="tool-name mono">{{ t.tool }}</span>
+                  <el-tag v-if="t.tool === 'create_work_order'" type="danger" size="small">写操作</el-tag>
+                  <span class="done">done</span>
                 </div>
-              </el-collapse-item>
-            </el-collapse>
-            <div v-if="m.tokens" class="tokens">tokens: {{ m.tokens.input }}↑ / {{ m.tokens.output }}↓</div>
+                <details class="trace-detail">
+                  <summary>参数与结果</summary>
+                  <pre class="mono">{{ JSON.stringify(t.arguments, null, 2) }}</pre>
+                  <pre class="trace-result mono">{{ t.result_preview }}</pre>
+                </details>
+              </div>
+            </div>
+            <div v-if="m.tokens" class="tokens mono">tokens: {{ m.tokens.input }}↑ / {{ m.tokens.output }}↓</div>
           </div>
         </div>
         <div v-if="sending" class="msg-row assistant">
-          <div class="bubble"><span class="content">思考中…（如需审批写操作会弹出确认框）</span></div>
+          <div class="message-avatar">AI</div>
+          <div class="bubble thinking">
+            <span></span><span></span><span></span> 正在调用工具…（如需审批写操作会弹出确认框）
+          </div>
         </div>
       </div>
       <div class="input-bar">
@@ -170,37 +176,64 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.assistant-page { display: flex; gap: 12px; height: calc(100vh - 120px); }
-.sessions-card { width: 220px; flex-shrink: 0; }
+.assistant-page { display: flex; gap: 14px; height: calc(100vh - 176px); }
+.sessions-card { width: 240px; flex-shrink: 0; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .session-item {
-  padding: 8px; border-radius: 4px; cursor: pointer; display: flex;
-  justify-content: space-between; align-items: center;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer; display: flex;
+  justify-content: space-between; align-items: center; gap: 6px;
+  border: 1px solid transparent; color: #a9c6cc;
 }
-.session-item:hover { background: #f5f7fa; }
-.session-item.active { background: #ecf5ff; }
-.sid { font-family: monospace; font-size: 13px; }
+.session-item:hover { background: #10242e; }
+.session-item.active {
+  background: linear-gradient(90deg, #11323d, #0d242e);
+  border-color: #1d5861; color: #d5f4f4; box-shadow: inset 2px 0 #5de3df;
+}
+.sid { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
 .chat-card { flex: 1; display: flex; flex-direction: column; }
 .chat-card :deep(.el-card__body) { display: flex; flex-direction: column; height: 100%; }
 .msg-list { flex: 1; overflow-y: auto; padding: 8px; }
-.empty { color: #999; text-align: center; padding: 24px 0; }
-.msg-row { display: flex; margin-bottom: 12px; }
-.msg-row.user { justify-content: flex-end; }
-.msg-row.assistant { justify-content: flex-start; }
+.empty { color: #66848b; text-align: center; padding: 24px 0; font-size: 12px; }
+.msg-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.msg-row.user { flex-direction: row-reverse; }
+.message-avatar {
+  width: 26px; height: 26px; border-radius: 8px; background: #164650;
+  display: grid; place-items: center; flex: none; color: #b8f7f4; font-size: 9px;
+}
+.msg-row.user .message-avatar { background: #37516b; color: #d3e7ff; }
 .bubble {
-  max-width: 72%; padding: 10px 12px; border-radius: 8px;
-  background: #f4f4f5; white-space: pre-wrap; word-break: break-word;
+  max-width: 72%; padding: 11px 13px; border-radius: 4px 11px 11px 11px;
+  background: #12303a; color: #b9d7db; font-size: 12px; line-height: 1.65;
+  white-space: pre-wrap; word-break: break-word;
 }
-.msg-row.user .bubble { background: #d9ecff; }
-.trace { margin-top: 8px; }
-.trace-item pre {
-  background: #fafafa; border: 1px solid #eee; border-radius: 4px;
-  padding: 6px; font-size: 12px; max-height: 160px; overflow: auto;
+.msg-row.user .bubble { background: #1b3f51; border-radius: 11px 4px 11px 11px; color: #dbedf3; }
+.tool-trace { margin-top: 12px; border-top: 1px solid #285762; padding-top: 10px; }
+.trace-title { display: flex; justify-content: space-between; color: #86d5d3; font-size: 10px; margin-bottom: 8px; }
+.trace-title small { color: #56838a; }
+.trace-item { margin-bottom: 4px; }
+.trace-step { display: flex; align-items: center; gap: 7px; color: #91b4b8; font-size: 10px; line-height: 1.9; }
+.trace-step i { font-style: normal; color: #67dcaf; }
+.trace-step .tool-name { color: #c7e6e8; }
+.trace-step .done { margin-left: auto; color: #579c8a; font-size: 9px; }
+.trace-detail summary {
+  cursor: pointer; color: #6da5ab; font-size: 9px; margin-left: 18px; user-select: none;
 }
-.trace-result { color: #666; }
-.tokens { margin-top: 6px; font-size: 12px; color: #999; }
+.trace-detail pre {
+  background: #0b1d26; border: 1px solid #17333c; border-radius: 6px;
+  padding: 8px; font-size: 11px; max-height: 180px; overflow: auto; color: #a9c6cc;
+}
+.trace-result { color: #7fa0a7; }
+.tokens { margin-top: 8px; font-size: 10px; color: #5e8289; }
+.thinking { display: flex; gap: 4px; align-items: center; color: #80a5aa; font-size: 11px; }
+.thinking span { width: 4px; height: 4px; background: #75d9ce; border-radius: 50%; animation: blink 1s infinite; }
+.thinking span:nth-child(2) { animation-delay: 0.15s; }
+.thinking span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes blink { 50% { opacity: 0.2; transform: translateY(-2px); } }
 .input-bar { display: flex; gap: 8px; align-items: flex-end; padding-top: 8px; }
-.confirm-args { background: #fafafa; border: 1px solid #eee; border-radius: 4px; padding: 8px; max-height: 240px; overflow: auto; }
-.confirm-note { color: #666; word-break: break-all; }
-.confirm-tip { color: #e6a23c; font-size: 13px; }
+.confirm-args {
+  background: #0b1d26; border: 1px solid #17333c; border-radius: 6px;
+  padding: 8px; max-height: 240px; overflow: auto; color: #a9c6cc;
+}
+.confirm-note { color: #7fa0a7; word-break: break-all; }
+.confirm-tip { color: #f3c66b; font-size: 13px; }
 </style>

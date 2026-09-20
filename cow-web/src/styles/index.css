@@ -1,0 +1,110 @@
+/* ============================================================
+ * 牧场数字孪生 · 工业暗色大屏设计体系
+ * 设计 token + 工具类（.glass/.eyebrow/.mono 等）
+ * 配合 element-plus/theme-chalk/dark/css-vars.css 使用（html.dark）
+ * ============================================================ */
+:root {
+  font-family: Inter, 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  color: #e7f4f6;
+  background: #061019;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  /* 设计色板：深底 / 青绿主色 / 琥珀观察 / 红色风险 / 紫色 AI */
+  --ranch-bg: #061019;
+  --ranch-panel: #10222f;
+  --ranch-cyan: #58d8e7;
+  --ranch-green: #68e0aa;
+  --ranch-amber: #f3c66b;
+  --ranch-purple: #b59cff;
+  --ranch-danger: #ff7c8b;
+  --ranch-text: #e7f4f6;
+  --ranch-text-sub: #73909a;
+  --ranch-border: rgba(106, 199, 209, 0.13);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 1200px;
+  background: var(--ranch-bg);
+}
+
+button, input { font: inherit; }
+
+/* ---------- 工具类 ---------- */
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6b8996;
+}
+
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+.glass {
+  background: linear-gradient(135deg, rgba(16, 34, 47, 0.94), rgba(7, 21, 31, 0.86));
+  border: 1px solid var(--ranch-border);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.18), inset 0 1px rgba(255, 255, 255, 0.035);
+  border-radius: 14px;
+}
+
+.panel-title { font-size: 14px; color: #d8edf0; font-weight: 600; letter-spacing: 0.02em; }
+.subtle { color: var(--ranch-text-sub); }
+.cyan { color: var(--ranch-cyan); }
+.green { color: var(--ranch-green); }
+.amber { color: var(--ranch-amber); }
+.purple { color: var(--ranch-purple); }
+.danger { color: var(--ranch-danger); }
+
+/* ---------- Element Plus 暗色变量上调主色（青绿） ---------- */
+html.dark {
+  --el-color-primary: #3fb6c0;
+  --el-color-primary-light-3: #6fc8d2;
+  --el-color-primary-light-5: #8fd4dd;
+  --el-color-primary-light-7: #174651;
+  --el-color-primary-light-8: #123842;
+  --el-color-primary-light-9: #0d2b34;
+  --el-color-primary-dark-2: #2f929b;
+
+  --el-bg-color: #0d1f2b;
+  --el-bg-color-page: #061019;
+  --el-bg-color-overlay: #10222f;
+  --el-border-color: #1d3a44;
+  --el-border-color-light: #1a343d;
+  --el-border-color-lighter: #173039;
+  --el-border-color-extra-light: #14303a;
+  --el-fill-color: #12242e;
+  --el-fill-color-light: #10212b;
+  --el-fill-color-lighter: #0e1f28;
+  --el-text-color-primary: #d8edf0;
+  --el-text-color-regular: #a9c6cc;
+  --el-text-color-secondary: #7fa0a7;
+  --el-text-color-placeholder: #54777f;
+}
+
+/* 消息提示暗色适配 */
+.el-message {
+  --el-message-bg-color: #102431;
+  --el-message-text-color: #dff7fa;
+  --el-message-border-color: #1c5361;
+}
+
+/* 卡片在暗色下的统一玻璃化 */
+.el-card {
+  --el-card-bg-color: transparent;
+  background: linear-gradient(135deg, rgba(16, 34, 47, 0.94), rgba(7, 21, 31, 0.86));
+  border: 1px solid var(--ranch-border);
+  border-radius: 14px;
+  color: var(--el-text-color-primary);
+}
+.el-card__header { border-bottom-color: var(--ranch-border); }
+
+/* 弹窗 / 下拉等浮层圆角 */
+.el-dialog { border-radius: 12px; }
+
+/* 全局滚动条 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #17333c; border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }

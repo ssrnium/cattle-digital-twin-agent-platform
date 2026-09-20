@@ -18,13 +18,13 @@
     <svg viewBox="0 0 1000 560" class="barn-svg">
       <g v-for="(zone, zi) in zones" :key="zone">
         <rect :x="zoneX(zi)" :y="20" :width="230" :height="520" rx="8"
-          fill="#fafafa" stroke="#dcdfe6" />
-        <text :x="zoneX(zi) + 115" y="48" text-anchor="middle" fill="#909399" font-size="14">
+          fill="rgba(9, 27, 36, 0.72)" stroke="#1d3a44" />
+        <text :x="zoneX(zi) + 115" y="48" text-anchor="middle" fill="#73909a" font-size="14">
           {{ zone }}
         </text>
         <circle v-for="cow in cowsOfZone(zone)" :key="cow.cowId"
           :cx="cowX(zone, cow)" :cy="cowY(zone, cow)" r="9"
-          :fill="cowColor(cow.cowId)" stroke="#fff" stroke-width="1.5"
+          :fill="cowColor(cow.cowId)" stroke="#0b1d26" stroke-width="1.5"
           class="cow-dot" @click="goDetail(cow.cowId)">
           <title>{{ cow.cowId }} {{ stateText(cow.cowId) }}</title>
         </circle>
@@ -130,9 +130,9 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-.legend { display: flex; gap: 14px; font-size: 12px; color: #606266; }
+.legend { display: flex; gap: 14px; font-size: 12px; color: #7fa0a7; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
-.barn-svg { width: 100%; background: #fff; border: 1px solid #ebeef5; border-radius: 8px; }
+.barn-svg { width: 100%; background: #0a1a24; border: 1px solid #1d3a44; border-radius: 8px; }
 .cow-dot { cursor: pointer; transition: r 0.15s; }
 .cow-dot:hover { r: 12; }
 </style>
