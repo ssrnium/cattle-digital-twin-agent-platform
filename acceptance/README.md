@@ -9,6 +9,7 @@
 | `cow_d1_main.py` | 浏览器主链路：登录 → 看板 → 牛棚孪生图 → 单牛时间线 → 事件流 → 工单状态机全流程 → 设备页 → AI 助手 | 15/15 通过 |
 | `cow_d2_agent_confirm.py` | 智能体高风险写操作人工确认闭环（park → 前端弹窗 → 批准/超时拒绝 → 工单落库） | 7/7 通过 |
 | `cow_device_flip.py` | 设备心跳在线翻转：OFFLINE → 心跳 → ONLINE → 停跳 70s → OFFLINE（API 断言 + 页面截图双证据） | 通过（2026-09-20） |
+| `cow_offline_lifecycle.py` | 设备离线完整生命周期：断网缓存(HIGH 优先级+心跳停用) → 恢复补传(DEDUP DEMO 重发全去重) → 多条离线事件只建 1 张高优维修单 → 全流转关闭 → 再次离线产生新一轮 → 同 event_id 重发 duplicated 不出单 | 10/10 通过（2026-09-20） |
 | `cow_demo_record.py` | 55s 演示视频录制（Playwright recordVideo，登录→看板→3D 选牛→设备→AI 助手真实对话） | 已录制（2026-09-20，GIF 见 `docs/screenshots/demo-cow-20260920.gif`） |
 
 ## 怎么跑
