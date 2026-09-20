@@ -12,7 +12,15 @@
 | --- | --- |
 | ![写操作确认](docs/screenshots/cow-08b-agent-confirm.png) | ![设备在线](docs/screenshots/cow-device-online.png) |
 
-> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 43 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`；验收脚本见 `acceptance/`。
+| 总览看板·暗色大屏（09-20 换肤） | 牛棚 3D 孪生场景（09-20 Three.js 升级） |
+| --- | --- |
+| ![暗色总览看板](docs/screenshots/dashboard-dark.png) | ![牛棚 3D 孪生](docs/screenshots/barn-3d-twin.png) |
+
+| 设备离线翻转实证（60s 心跳阈值） | AI 助手真实对话与工具轨迹 |
+| --- | --- |
+| ![设备离线翻转](docs/screenshots/cow-device-offline.png) | ![AI 助手](docs/screenshots/assistant-dark.png) |
+
+> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 43 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`；验收脚本见 `acceptance/`；设备心跳 OFFLINE→ONLINE→OFFLINE 翻转实证（2026-09-20，`acceptance/cow_device_flip.py`，停跳 75s 后离线并累计断网时长）。
 
 ## 项目定位
 

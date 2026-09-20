@@ -1,6 +1,6 @@
 # PROJECT_STATUS — 单牛数字孪生与健康繁殖任务管理平台
 
-> 更新日期：2026-09-18 ｜ 当前版本：**v0.2.0-acceptance**（首场验证版切片，全链路验收通过）
+> 更新日期：2026-09-20 ｜ 当前版本：**v0.2.0-acceptance**（首场验证版切片，全链路验收通过）
 
 ## 状态速览
 
@@ -27,6 +27,7 @@
 10. 操作审计：智能体对话落 agent_session/agent_message 表；
 11. 平台单测与构建全绿；git 建仓。
 12. 面试官视角强化（2026-09-18）：**cow-admin 核心机制单测补齐至 43 项**（TwinUpdater 迟到不回退/置信度门控/乐观锁重试、TaskRuleEngine 24h 收敛与设备去重、Outbox 降级，新增设备 60s 心跳在线翻转/401 凭证、JWT 签发/过期/篡改、智能体审计落库与审批转发、MQTT 批量隔离，mvn test 全绿）；README 挂 4 张真实运行截图与验收记录索引；断网心跳 OFFLINE/ONLINE 翻转完成浏览器实证（60s 窗口，截图留证）；验收脚本入库 acceptance/；新增 GitHub Actions CI（admin mvn test / agent·ai pytest / web build 含 vue-tsc 前置）。
+13. 前端全面升级与翻转实证（2026-09-20，参考高保真样稿 smart-ranch-digital-twin 仿写）：**全局暗色大屏设计体系**（设计 token + Element Plus 暗色变量 + 玻璃拟态侧边栏/顶栏，权限过滤与路由守卫零改动）、**Dashboard 重构**（KPI/事件趋势/健康环图/异常预警/Agent 会话面板，全部真实接口数据，无虚构）、**登录页换壳**（品牌叙事+玻璃登录卡，真实登录逻辑保留）、**AI 助手气泡升级**（trace-step 工具轨迹 + thinking 动画，审批弹窗与轮询不动）、**牛棚孪生页 Three.js 3D 升级**（InstancedMesh 承载 103 头牛按轮询实时变色，OrbitControls+Raycaster 选牛弹个体卡片跳详情，WebGL 降级保留 SVG，three 路由级动态加载不进主 chunk）、request 拦截器 silent 静默请求抛光（装饰性调用不再弹错误 toast）；**设备心跳翻转全流程实证**（`acceptance/cow_device_flip.py`：OFFLINE(161719s)→心跳→ONLINE→停跳 75s→OFFLINE 并累计断网时长，API 断言 + 页面截图双证据）；新增实证截图 4 张入 docs/screenshots/（暗色看板/3D 孪生/离线翻转/AI 助手），浏览器逐页自检 0 console error。
 
 ## 正在开发（下一阶段）
 
