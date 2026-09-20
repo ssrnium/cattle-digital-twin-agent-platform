@@ -2,11 +2,14 @@ package com.portfolio.cow.modules.task.service;
 
 import com.portfolio.cow.common.BizException;
 import com.portfolio.cow.common.ResultCode;
+import com.portfolio.cow.modules.agent.service.ActionDigest;
+import com.portfolio.cow.modules.agent.service.PendingActionService;
 import com.portfolio.cow.modules.task.entity.WorkOrder;
 import com.portfolio.cow.modules.task.mapper.WorkOrderMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -36,9 +39,32 @@ public class WorkOrderService {
     );
 
     private final WorkOrderMapper workOrderMapper;
+    private final PendingActionService pendingActionService;
 
     private static final Set<String> TYPES = Set.of(WorkOrder.TYPE_BREEDING_REVIEW, WorkOrder.TYPE_VET_CHECK, WorkOrder.TYPE_DEVICE_REPAIR);
     private static final Set<String> PRIORITIES = Set.of("HIGH", "NORMAL", "LOW");
+
+    /**
+     * 智能体建单（svc-agent 专用强制点）：必须携带用户本人批准过的 X-Action-Id 凭证。
+     * 同事务内建单并把凭证 APPROVED→EXECUTED（条件更新），重复提交 0 行即 409 回滚，
+     * action_id 的唯一性 + 单次状态迁移保证 exactly-once。
+     */
+    @Transactional
+    public WorkOrder createByAgent(WorkOrder order, String actionId) {
+        if (!StringUtils.hasText(actionId)) {
+            throw new BizException(ResultCode.FORBIDDEN.getCode(),
+                    "智能体建单必须携带审批凭证（X-Action-Id 头）");
+        }
+        String digest = ActionDigest.of(order.getType(), order.getCowId(), order.getDeviceId(),
+                order.getSourceEventId(), order.getPriority(), order.getDescription());
+        pendingActionService.validateExecutable(actionId, digest);
+        WorkOrder created = create(order);
+        int rows = pendingActionService.markExecuted(actionId, created.getId());
+        if (rows == 0) {
+            throw new BizException(ResultCode.CONFLICT.getCode(), "该审批已被使用，本次建单已回滚");
+        }
+        return created;
+    }
 
     /** 手工创建工单（供牧场智能体 create_work_order 工具回调，走 task:create 权限） */
     public WorkOrder create(WorkOrder order) {

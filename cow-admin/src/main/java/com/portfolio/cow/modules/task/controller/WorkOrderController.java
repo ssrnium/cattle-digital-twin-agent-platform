@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,12 +34,23 @@ public class WorkOrderController {
     private final WorkOrderMapper workOrderMapper;
     private final WorkOrderService workOrderService;
 
-    /** 手工创建工单：仅 task:create 权限（svc-agent 等 service 账号）可用 */
+    /** 手工创建工单：仅 task:create 权限；SERVICE 角色（svc-agent）必须携带 X-Action-Id 审批凭证 */
     @PostMapping
     @PreAuthorize("hasAuthority('task:create')")
     @OperLog(title = "手工创建工单")
-    public Result<WorkOrder> create(@RequestBody WorkOrder order) {
+    public Result<WorkOrder> create(@RequestBody WorkOrder order,
+                                    @RequestHeader(value = "X-Action-Id", required = false) String actionId) {
+        if (isServiceAccount()) {
+            return Result.ok(workOrderService.createByAgent(order, actionId));
+        }
         return Result.ok(workOrderService.create(order));
+    }
+
+    /** 调用者是 SERVICE 角色（智能体服务账号）时，建单走 PENDING_ACTION 强制审批 */
+    private boolean isServiceAccount() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return principal instanceof LoginUser u
+                && u.getRoles() != null && u.getRoles().contains("SERVICE");
     }
 
     @GetMapping

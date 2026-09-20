@@ -1,12 +1,16 @@
 package com.portfolio.cow.modules.agent.controller;
 
+import com.portfolio.cow.common.BizException;
+import com.portfolio.cow.modules.agent.dto.AgentActionRegisterRequest;
 import com.portfolio.cow.modules.agent.dto.AgentChatRequest;
 import com.portfolio.cow.modules.agent.dto.AgentConfirmRequest;
 import com.portfolio.cow.modules.agent.entity.AgentMessage;
 import com.portfolio.cow.modules.agent.entity.AgentSession;
+import com.portfolio.cow.modules.agent.entity.PendingAction;
 import com.portfolio.cow.modules.agent.mapper.AgentMessageMapper;
 import com.portfolio.cow.modules.agent.mapper.AgentSessionMapper;
 import com.portfolio.cow.modules.agent.service.AgentServiceClient;
+import com.portfolio.cow.modules.agent.service.PendingActionService;
 import com.portfolio.cow.security.LoginUser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -44,6 +49,8 @@ class AgentControllerTest {
     private AgentSessionMapper sessionMapper;
     @Mock
     private AgentMessageMapper messageMapper;
+    @Mock
+    private PendingActionService pendingActionService;
 
     @InjectMocks
     private AgentController agentController;
@@ -125,6 +132,59 @@ class AgentControllerTest {
         verify(agentServiceClient).confirm(payloadCaptor.capture());
         assertEquals("sess-0001", payloadCaptor.getValue().get("session_id"));
         assertEquals(true, payloadCaptor.getValue().get("approved"));
+    }
+
+    @Test
+    void confirmResolvesPendingActionBeforeForwarding() {
+        // 审批下沉：先落 PENDING_ACTION 状态（批准人=发起人），再转发 cow-agent 放行
+        PendingAction action = new PendingAction();
+        action.setActionId("act-0001");
+        when(pendingActionService.resolveForConfirm("sess-0001", true, "admin")).thenReturn(action);
+        when(agentServiceClient.confirm(any())).thenReturn(Map.of("ok", true));
+
+        AgentConfirmRequest request = new AgentConfirmRequest();
+        request.setSessionId("sess-0001");
+        request.setApproved(true);
+        agentController.confirm(request);
+
+        verify(pendingActionService).resolveForConfirm("sess-0001", true, "admin");
+        verify(agentServiceClient).confirm(any());
+        verify(pendingActionService, never()).voidIfApproved(any());
+    }
+
+    @Test
+    void confirmForwardFailureVoidsApprovedAction() {
+        // cow-agent 侧 park 已消失（超时）→ 转发失败时 APPROVED 凭证同步作废
+        PendingAction action = new PendingAction();
+        action.setActionId("act-0001");
+        when(pendingActionService.resolveForConfirm("sess-0001", true, "admin")).thenReturn(action);
+        when(agentServiceClient.confirm(any())).thenThrow(new BizException(502, "cow-agent 调用失败"));
+
+        AgentConfirmRequest request = new AgentConfirmRequest();
+        request.setSessionId("sess-0001");
+        request.setApproved(true);
+        assertThrows(BizException.class, () -> agentController.confirm(request));
+        verify(pendingActionService).voidIfApproved("act-0001");
+    }
+
+    @Test
+    void registerActionReturnsActionId() {
+        // cow-agent park 时注册待审批动作（svc-agent 专用），返回 action_id 作为执行凭证
+        PendingAction action = new PendingAction();
+        action.setActionId("act-0001");
+        action.setStatus(PendingAction.STATUS_PENDING);
+        action.setExpireAt(java.time.LocalDateTime.now().plusSeconds(120));
+        when(pendingActionService.register(any(), any(), any())).thenReturn(action);
+
+        AgentActionRegisterRequest request = new AgentActionRegisterRequest();
+        request.setSessionId("sess-0001");
+        request.setTool("create_work_order");
+        request.setParams(Map.of("type", "VET_CHECK", "description", "跛行复核"));
+
+        Map<String, Object> data = agentController.registerAction(request).getData();
+        assertEquals("act-0001", data.get("action_id"));
+        assertEquals(PendingAction.STATUS_PENDING, data.get("status"));
+        verify(pendingActionService).register("sess-0001", "create_work_order", request.getParams());
     }
 
     @Test

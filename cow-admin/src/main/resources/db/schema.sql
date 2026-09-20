@@ -161,3 +161,23 @@ CREATE TABLE IF NOT EXISTS agent_message (
     create_time   TIMESTAMP NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_agent_message_session ON agent_message(session_id, id);
+
+-- ============ 智能体写操作审批下沉（后端强制） ============
+-- svc-agent 建单必须携带 APPROVED 状态的 action_id（X-Action-Id 头），
+-- 条件更新 APPROVED→EXECUTED 保证 exactly-once；批准人=发起人由 username 强制绑定
+CREATE TABLE IF NOT EXISTS pending_action (
+    id            BIGSERIAL PRIMARY KEY,
+    action_id     VARCHAR(40) NOT NULL,  -- 对外凭证（X-Action-Id）
+    session_id    VARCHAR(32) NOT NULL,
+    username      VARCHAR(64) NOT NULL,  -- 发起人（= 唯一合法批准人）
+    tool          VARCHAR(64) NOT NULL,
+    params_json   TEXT,
+    params_digest VARCHAR(64) NOT NULL,  -- 参数规范化摘要，防审批后篡改
+    status        VARCHAR(16) NOT NULL DEFAULT 'PENDING', -- PENDING/APPROVED/REJECTED/EXECUTED/EXPIRED
+    expire_at     TIMESTAMP   NOT NULL,
+    created_at    TIMESTAMP   NOT NULL DEFAULT now(),
+    executed_at   TIMESTAMP,
+    work_order_id BIGINT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_pending_action_action_id ON pending_action(action_id);
+CREATE INDEX IF NOT EXISTS idx_pending_action_session ON pending_action(session_id, status);

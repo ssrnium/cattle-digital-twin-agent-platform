@@ -6,12 +6,17 @@
 
 service 账号（svc-agent）启动登录拿 JWT，401 时自动重登重试一次；
 所有调用带超时与错误兜底，返回给模型的都是字符串（JSON 或友好错误）。
+
+审批下沉：写工具 park 时先向 admin 注册 PENDING_ACTION（register_action），
+用户批准后执行时携带 X-Action-Id 头（current_action_id 由 agent_manager 在
+park/放行链路写入 ContextVar，与工具执行同 task 传递）。
 """
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
-from typing import Any, Callable, Awaitable
+from typing import Any, Callable, Awaitable, Optional
 
 import httpx
 
@@ -22,6 +27,10 @@ logger = logging.getLogger("cow-agent.tools")
 WRITE_TOOLS = {"create_work_order"}
 
 HTTP_TIMEOUT = 10.0
+
+# 当前 task 已获批的 PENDING_ACTION 凭证（X-Action-Id），agent_manager 写、_create_work_order 读
+current_action_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "cow_action_id", default=None)
 
 
 class AdminClient:
@@ -52,18 +61,17 @@ class AdminClient:
         self._token = body["data"]["token"]
 
     async def request(self, method: str, path: str, **kwargs) -> Any:
-        """调 cow-admin 并解包 Result；401 重登后重试一次。"""
+        """调 cow-admin 并解包 Result；401 重登后重试一次。调用方可传 headers，会合并 Authorization。"""
         last_error: Exception | None = None
+        caller_headers = dict(kwargs.pop("headers", {}) or {})
         for attempt in range(2):
             if self._token is None:
                 await self.login()
+            extra_headers = dict(caller_headers)
+            extra_headers["Authorization"] = f"Bearer {self._token}"
             try:
                 async with self._client() as client:
-                    resp = await client.request(
-                        method, path,
-                        headers={"Authorization": f"Bearer {self._token}"},
-                        **kwargs,
-                    )
+                    resp = await client.request(method, path, headers=extra_headers, **kwargs)
             except httpx.HTTPError as e:
                 raise ToolError(f"无法连接 cow-admin({self._base_url}): {e}") from e
             if resp.status_code == 401 and attempt == 0:
@@ -241,7 +249,26 @@ async def _create_work_order(inp: dict) -> Any:
         "priority": inp.get("priority") or "NORMAL",
         "description": inp["description"],
     }
-    return await admin_client.request("POST", "/api/v1/tasks", json=body)
+    # 审批下沉：svc-agent 建单必须携带用户本人批准过的 PENDING_ACTION 凭证
+    action_id = current_action_id.get()
+    headers = {"X-Action-Id": action_id} if action_id else {}
+    return await admin_client.request("POST", "/api/v1/tasks", json=body, headers=headers)
+
+
+async def register_action(session_id: str, tool: str, arguments: dict) -> str:
+    """park 写操作时向 admin 注册 PENDING_ACTION，返回 action_id（发起人由 admin 按会话绑定）。"""
+    data = await admin_client.request(
+        "POST", "/api/v1/agent/actions",
+        json={"sessionId": session_id, "tool": tool, "params": arguments or {}})
+    return str(data["action_id"])
+
+
+async def expire_action(action_id: str) -> None:
+    """120s 超时自动拒绝路径：作废 admin 侧仍 PENDING 的凭证（尽力而为）。"""
+    try:
+        await admin_client.request("POST", f"/api/v1/agent/actions/{action_id}/expire")
+    except Exception as e:
+        logger.warning("expire action %s failed: %s", action_id, e)
 
 
 TOOL_HANDLERS: dict[str, Callable[[dict], Awaitable[Any]]] = {

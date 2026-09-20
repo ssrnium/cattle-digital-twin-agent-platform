@@ -3,7 +3,10 @@
 - Agent 实例非并发安全 → 每个 session 一个实例 + 每实例 asyncio.Lock；
 - confirm_fn 把确认请求 park 到 asyncio.Future，前端调 /confirm 后放行，
   超时（默认 120s）自动拒绝；
-- pending 确认通过 /sessions 暴露给前端轮询（chat 请求本身阻塞等待确认）。
+- pending 确认通过 /sessions 暴露给前端轮询（chat 请求本身阻塞等待确认）；
+- 审批下沉：领域写工具 park 前先向 admin 注册 PENDING_ACTION（失败即拒绝该
+  写操作，fail-closed），放行后凭证经 ContextVar 传给工具执行（X-Action-Id），
+  超时路径同步作废 admin 侧凭证。
 """
 from __future__ import annotations
 
@@ -14,6 +17,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 
+from app import cow_tools
 from app.config import settings
 from app.cow_agent import create_cow_agent
 
@@ -31,6 +35,7 @@ class PendingConfirm:
     tool: str
     arguments: dict
     since: float = field(default_factory=time.time)
+    action_id: str | None = None
 
 
 @dataclass
@@ -88,13 +93,25 @@ class AgentManager:
         loop = asyncio.get_running_loop()
         fut: asyncio.Future = loop.create_future()
         tool, arguments = self._parse_confirm_message(message)
+        action_id = None
+        if tool in cow_tools.WRITE_TOOLS:
+            # 审批下沉：先向 admin 注册 PENDING_ACTION；注册不上 = 后端审批不可用，
+            # 直接拒绝该写操作（fail-closed，不放行无凭证的写）
+            try:
+                action_id = await cow_tools.register_action(session_id, tool, arguments)
+            except Exception as e:
+                logger.warning("session %s action register failed, deny write: %s", session_id, e)
+                return False
+            cow_tools.current_action_id.set(action_id)
         self._pending[session_id] = PendingConfirm(
-            future=fut, message=message, tool=tool, arguments=arguments)
-        logger.info("session %s waiting confirm: %s", session_id, tool)
+            future=fut, message=message, tool=tool, arguments=arguments, action_id=action_id)
+        logger.info("session %s waiting confirm: %s (action=%s)", session_id, tool, action_id)
         try:
             return bool(await asyncio.wait_for(fut, timeout=settings.CONFIRM_TIMEOUT_SECONDS))
         except asyncio.TimeoutError:
             logger.info("session %s confirm timeout, auto-denied", session_id)
+            if action_id:
+                await cow_tools.expire_action(action_id)  # 同步作废 admin 侧凭证
             return False
         finally:
             self._pending.pop(session_id, None)
