@@ -1,5 +1,3 @@
-version: "3.9"
-
 # 单牛数字孪生与健康繁殖任务管理平台 —— 一键编排
 # 基础服务：db / redis / mosquitto / cow-admin / cow-ai / cow-web
 # 演示服务：cow-edge（profiles: demo，可选启动）
@@ -8,6 +6,7 @@ services:
   db:
     image: postgres:16-alpine
     container_name: cow-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: cow_db
       POSTGRES_USER: postgres
@@ -26,6 +25,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: cow-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     healthcheck:
@@ -37,6 +37,7 @@ services:
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: cow-mosquitto
+    restart: unless-stopped
     ports:
       - "1883:1883"
     volumes:
@@ -46,6 +47,7 @@ services:
   cow-admin:
     build: ./cow-admin
     container_name: cow-admin
+    restart: unless-stopped
     environment:
       DB_URL: jdbc:postgresql://db:5432/cow_db?stringtype=unspecified
       DB_USERNAME: postgres
@@ -53,7 +55,7 @@ services:
       REDIS_HOST: redis
       MQTT_ENABLED: "true"
       MQTT_BROKER: tcp://mosquitto:1883
-      JWT_SECRET: cow-digital-twin-compose-demo-secret-please-override-0123456789abcdef
+      JWT_SECRET: ${JWT_SECRET:-cow-digital-twin-compose-demo-secret-please-override-0123456789abcdef}
     ports:
       - "8081:8081"
     depends_on:
@@ -67,12 +69,14 @@ services:
   cow-ai:
     build: ./cow-ai
     container_name: cow-ai
+    restart: unless-stopped
     ports:
       - "8000:8000"
 
   cow-agent:
     build: ./cow-agent
     container_name: cow-agent
+    restart: unless-stopped
     environment:
       # OpenAI 兼容协议，默认 DeepSeek V4.1 Flash；key 走环境变量注入，不进镜像
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com/v1}
@@ -91,6 +95,7 @@ services:
   cow-edge:
     build: ./cow-edge
     container_name: cow-edge
+    restart: unless-stopped
     profiles: ["demo"]
     environment:
       MQTT_HOST: mosquitto
@@ -107,6 +112,7 @@ services:
   cow-web:
     build: ./cow-web
     container_name: cow-web
+    restart: unless-stopped
     ports:
       - "8089:80"
     depends_on:
