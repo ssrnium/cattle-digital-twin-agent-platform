@@ -234,7 +234,7 @@ flowchart TB
 
 **技术栈**：Python、FastAPI
 
-负责 AI 模型接口、爬跨和跛行推理服务，以及视觉模型的标准化接入。
+负责 AI 模型接口、爬跨和跛行推理服务，以及视觉模型的标准化接入。爬跨推理已接入采购 YOLOv8m 行为权重（10 类含 mounting，按类别名过滤）：真实推理主机需额外安装 `cow-ai/requirements-vision.txt`（torch 建议 CPU 源），缺权重或缺依赖时自动回落 mock，连续帧片段经 `POST /api/v1/infer/mounting/clip` 会话化为"一窗一事件"。
 
 ### cow-agent：Agent 服务
 
@@ -491,7 +491,7 @@ evidence_ref / raw
 
 | 能力资产 | 插入位置 |
 | --- | --- |
-| 爬跨 YOLOv8n 权重 | `cow-ai/app/routers/infer.py` 的 `infer_mounting()`；权重路径由 `MOUNTING_WEIGHTS_PATH` 配置 |
+| 爬跨 YOLOv8m 行为权重 | **已接入**（`cow-ai/app/routers/infer.py` 的 `infer_mounting()` + 连续帧会话化端点 `POST /api/v1/infer/mounting/clip`）：采购 YOLOv8m 行为权重，10 类含 mounting；权重经 `MOUNTING_WEIGHTS_PATH` 路径配置、不随仓库分发；缺权重/缺 ultralytics 自动回落 mock |
 | 跛行 YOLOv11 + RTMPose + XGBoost 推理链 | `cow-ai/app/routers/infer.py` 的 `infer_lameness()`；权重目录由 `LAMENESS_WEIGHTS_PATH` 配置 |
 | 真实摄像头 RTSP 接入 | 将 `cow-edge/simulator.py` 的 `make_event()` 替换为“RTSP 拉流 → 抽帧 → 调用 cow-ai → 组装事件”，事件契约保持不变 |
 | 三维模型资产（glTF） | 在 `cow-web/src/views/barn/index.vue` 的 Three.js 升级插入点替换 SVG 渲染层，数据层保持不变 |

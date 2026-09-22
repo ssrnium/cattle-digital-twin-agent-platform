@@ -34,9 +34,11 @@
 17. MQTT 与 HTTP 统一幂等入口实证（2026-09-21 凌晨，`acceptance/cow_mqtt_http_dedup.py`，4/4）：同一 event_id 先经 Mosquitto → MQTT 消费入库，再经 HTTP 补传 → `duplicated=true` 不重复落库；反向先 HTTP 后 MQTT 同样不重复——**传输方式不同，业务幂等边界统一由 event_id 保证**。
 16. **智能体写操作审批下沉为后端强制（PENDING_ACTION）**（2026-09-21，`docs/approval_boundary_audit.md` 第五节）：新表 `pending_action`（action_id 唯一约束，PENDING/APPROVED/REJECTED/EXECUTED/EXPIRED 状态机，120s 有效期）——cow-agent park 前向 admin 注册（发起人按 agent_session 绑定不可伪造，注册失败 fail-closed 拒绝写操作）；`/agent/confirm` 先落审批状态（**批准人=发起人**校验、过期作废、重复审批 409）再转发 cow-agent，转发失败补偿作废；**强制点** `WorkOrderController.create`：SERVICE 角色必须携带 `X-Action-Id`（存在/APPROVED/未过期/参数摘要一致），同事务内建单 + APPROVED→EXECUTED 条件更新（**exactly-once**，重复提交 409 只一张单）；120s 超时 cow-agent 自动拒绝并同步作废凭证。实证：svc-agent 无凭证直连建单 **403**、伪造凭证 **403**；cow-admin 单测 **43→64**、cow-agent pytest **16→21**、`acceptance/cow_d2_agent_confirm.py` **7/7** 复跑全绿（断言未放松）。
 
+18. **爬跨推理实装 YOLOv8m + 连续帧会话化**（2026-09-22）：`cow-ai/app/routers/infer.py` 的 `infer_mounting()` 从 mock 占位实装为真实推理——采购 YOLOv8m 行为权重（10 类含 mounting），**按 model.names 类别名过滤 mounting（不写死 class index）**，权重路径经 `MOUNTING_WEIGHTS_PATH` 配置、不随仓库分发；ultralytics/torch **懒导入 + 进程级缓存**，缺权重/缺依赖自动回落 mock（`mocked=True`）；torch/ultralytics 不进 requirements.txt，单独 `cow-ai/requirements-vision.txt`（注明 CPU 源，仅真实推理主机安装）。新增会话化模块 `app/services/behavior_session.py`（`sessionize`：连续 ≥3 帧超 0.4 开窗、连续 ≥5 帧低于阈值关窗，聚合 peak/avg/best_bbox，**一个窗口 = 一个事件**，解决同一行为几十帧产生几十个重复告警）与新端点 `POST /api/v1/infer/mounting/clip`（≤300 帧逐帧推理 → sessionize，mock 模式按伪置信度跑同一逻辑保证演示可复现）。**cow-ai pytest 4→17 全绿**（新增 sessionize 7 例 + 真实/mock 分支与类别名过滤 3 例 + clip 契约与帧数校验 3 例，在无 torch 环境验证通过）。
+
 ## 正在开发（下一阶段）
 
-1. **真实模型权重接入**（第一阶段资产：爬跨 YOLOv8n、跛行 YOLOv11+RTMPose+XGBoost，cow-ai 的 infer 接口留插入点）；
+1. **真实模型权重接入**（第一阶段资产：爬跨 YOLOv8m 已接入并会话化，剩余跛行 YOLOv11+RTMPose+XGBoost 推理链，cow-ai 的 infer 接口留插入点）；
 2. 断网 72h 长时缓存演示（验收口径：结构化事件离线缓存 ≥72h、补传 ≤6h）；
 3. 设备离线告警链路演示（60s 心跳超时 → DEVICE_OFFLINE 事件 → 维修工单）；
 4. Docker compose 全栈（mosquitto/chromadb 等镜像编排）。
