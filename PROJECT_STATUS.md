@@ -37,6 +37,8 @@
 18. **爬跨推理实装 YOLOv8m + 连续帧会话化**（2026-09-22）：`cow-ai/app/routers/infer.py` 的 `infer_mounting()` 从 mock 占位实装为真实推理——采购 YOLOv8m 行为权重（10 类含 mounting），**按 model.names 类别名过滤 mounting（不写死 class index）**，权重路径经 `MOUNTING_WEIGHTS_PATH` 配置、不随仓库分发；ultralytics/torch **懒导入 + 进程级缓存**，缺权重/缺依赖自动回落 mock（`mocked=True`）；torch/ultralytics 不进 requirements.txt，单独 `cow-ai/requirements-vision.txt`（注明 CPU 源，仅真实推理主机安装）。新增会话化模块 `app/services/behavior_session.py`（`sessionize`：连续 ≥3 帧超 0.4 开窗、连续 ≥5 帧低于阈值关窗，聚合 peak/avg/best_bbox，**一个窗口 = 一个事件**，解决同一行为几十帧产生几十个重复告警）与新端点 `POST /api/v1/infer/mounting/clip`（≤300 帧逐帧推理 → sessionize，mock 模式按伪置信度跑同一逻辑保证演示可复现）。**cow-ai pytest 4→17 全绿**（新增 sessionize 7 例 + 真实/mock 分支与类别名过滤 3 例 + clip 契约与帧数校验 3 例，（在无 torch 环境验证通过）。
 19. **采购视觉权重端到端验证（2026-09-22，AutoDL 服务器实证）**：权重部署服务器 `/root/autodl-tmp/models/cow-behavior/`（**不入库**，`MOUNTING_WEIGHTS_PATH` 引用）；单帧真实推理：正样本 conf=0.717/2 检出、负样本 0 检出（`mocked=false`，`model_version=yolov8m-behavior-10cls-1.0`）；**会话化真实验证**：负×5+正×8+负×7 帧序列 → 恰好 **1 个行为窗口**（f5-f12，peak=0.826，avg=0.746）；窗口事件经设备凭证接入 → 幂等接受 → **孪生 COW-0043 `estrus_status=SUSPECTED_HEAT`**（event_time 与窗口一致）→ 规则引擎 24h 收敛正确跳过重复建单——**"真实视频识别 → 业务事件 → 孪生/工单"链路闭环**（torch 2.14.0+cpu + torchvision 0.29.0+cpu + ultralytics 8.4.158，32 核 CPU 推理）。
 
+  **适用边界（如实记录）**：采购权重对真实高位俯拍机位视频（白天+夜视，63 帧抽测）在 conf≥0.05 下全零检出，判定其训练域（平视侧拍特写）不适用该机位；演示素材改用数据集帧的真实检出（`docs/screenshots/vision-mounting-demo.gif`，mounting 峰值 0.90，框为采购模型真实输出）。
+
 ## 正在开发（下一阶段）
 
 1. **真实模型权重接入**（第一阶段资产：爬跨 YOLOv8m 已接入并会话化，剩余跛行 YOLOv11+RTMPose+XGBoost 推理链，cow-ai 的 infer 接口留插入点）；

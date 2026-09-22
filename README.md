@@ -18,6 +18,12 @@
 | --- | --- |
 | ![设备在线状态监测](docs/screenshots/cow-device-online.png) | ![设备离线自动标记](docs/screenshots/cow-device-offline.png) |
 
+| 视觉行为识别（采购权重 · 数据集帧真实检出） |
+| --- |
+| ![视觉行为识别演示](docs/screenshots/vision-mounting-demo.gif) |
+
+> 视觉链路说明：接入第三方 YOLOv8m 行为权重（10 类含 mounting，采购资产，权重不随仓库分发）。上演示为数据集帧序列的真实检出（mounting 峰值 0.90）——模型接入与场景适用性分别验证：数据集口径可用；对高位俯拍机位实测不适用（63 帧零检出，conf≥0.05），该边界已如实记录于 PROJECT_STATUS。
+
 > 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 43 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`；验证脚本见 `acceptance/`；设备心跳在线状态切换可由 `acceptance/cow_device_flip.py` 复现。
 
 ## 项目定位
