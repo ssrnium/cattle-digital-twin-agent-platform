@@ -22,9 +22,9 @@
 | --- |
 | ![视觉行为识别演示](docs/screenshots/vision-mounting-demo.gif) |
 
-> 视觉链路说明：接入第三方 YOLOv8m 行为权重（10 类含 mounting，采购资产，权重不随仓库分发）。上演示为数据集帧序列的真实检出（mounting 峰值 0.90）——模型接入与场景适用性分别验证：数据集口径可用；对高位俯拍机位实测不适用（63 帧零检出，conf≥0.05），该边界已如实记录于 PROJECT_STATUS。
+> 视觉链路说明：接入第三方 YOLOv8m 行为权重（10 类含 mounting，采购资产，权重不随仓库分发）。上方演示为数据集帧序列的真实检出（mounting 峰值 0.90）——模型接入与场景适用性分别验证：数据集口径可用；对高位俯拍机位实测不适用（63 帧零检出，conf≥0.05），该边界已如实记录于 PROJECT_STATUS。
 
-> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 43 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`；验证脚本见 `acceptance/`；设备心跳在线状态切换可由 `acceptance/cow_device_flip.py` 复现。
+> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 64 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`；验证脚本见 `acceptance/`；设备心跳在线状态切换可由 `acceptance/cow_device_flip.py` 复现。
 
 ## 项目定位
 
@@ -240,7 +240,7 @@ flowchart TB
 
 **技术栈**：Python、FastAPI
 
-负责 AI 模型接口、爬跨和跛行推理服务，以及视觉模型的标准化接入。爬跨推理已接入采购 YOLOv8m 行为权重（10 类含 mounting，按类别名过滤）：真实推理主机需额外安装 `cow-ai/requirements-vision.txt`（torch 建议 CPU 源），缺权重或缺依赖时自动回落 mock，连续帧片段经 `POST /api/v1/infer/mounting/clip` 会话化为"一窗一事件"。
+负责 AI 模型接口、爬跨和跛行推理服务，以及视觉模型的标准化接入。爬跨推理已接入采购 YOLOv8m 行为权重（10 类含 mounting，按类别名过滤）：真实推理主机需额外安装 `cow-ai/requirements-vision.txt`（torch 建议 CPU 源），缺权重或缺依赖时自动回落 mock，连续帧片段经 `POST /api/v1/infer/mounting/clip` 会话化为"一窗一事件"；跛行检测当前为占位接口，权重接入点已预留（见「成熟能力插入点」）。
 
 ### cow-agent：Agent 服务
 
@@ -500,7 +500,7 @@ evidence_ref / raw
 | 爬跨 YOLOv8m 行为权重 | **已接入**（`cow-ai/app/routers/infer.py` 的 `infer_mounting()` + 连续帧会话化端点 `POST /api/v1/infer/mounting/clip`）：采购 YOLOv8m 行为权重，10 类含 mounting；权重经 `MOUNTING_WEIGHTS_PATH` 路径配置、不随仓库分发；缺权重/缺 ultralytics 自动回落 mock |
 | 跛行 YOLOv11 + RTMPose + XGBoost 推理链 | `cow-ai/app/routers/infer.py` 的 `infer_lameness()`；权重目录由 `LAMENESS_WEIGHTS_PATH` 配置 |
 | 真实摄像头 RTSP 接入 | 将 `cow-edge/simulator.py` 的 `make_event()` 替换为“RTSP 拉流 → 抽帧 → 调用 cow-ai → 组装事件”，事件契约保持不变 |
-| 三维模型资产（glTF） | 在 `cow-web/src/views/barn/index.vue` 的 Three.js 升级插入点替换 SVG 渲染层，数据层保持不变 |
+| 三维模型资产（glTF） | 牛棚 3D 场景已基于 Three.js 落地（`cow-web/src/views/barn/BarnScene.vue`，WebGL 不可用时回落 SVG 视图）；精细 glTF 模型资产可在该场景层替换程序化几何体，数据层保持不变 |
 | 完整事件契约 | 扩展 `UnifiedEvent.java` 与 `db/schema.sql` 中的 `unified_event` 表，并同步提升 `schema_version` |
 
 ## 当前范围与验证标准
@@ -518,9 +518,9 @@ evidence_ref / raw
 ## 后续规划
 
 - 接入真实摄像头 RTSP 视频流
-- 部署奶牛爬跨与跛行视觉模型
+- 部署奶牛跛行视觉模型
 - 引入发情和疾病预测模型
-- 升级 Three.js 三维数字孪生展示
+- 丰富三维数字孪生场景资产（glTF 精细模型）
 - 支持多牧场管理与跨场区分析
 - 扩展更多牧场 SOP Skills 与业务工具
 
