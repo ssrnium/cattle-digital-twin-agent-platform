@@ -1,0 +1,6 @@
+# 仅真实推理主机安装本文件（CI 与本地开发环境不安装；cow-ai 全部测试无需 torch）。
+# torch 建议走 CPU 源安装，避免默认源拉取约 2.5G 的 CUDA 版本：
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install ultralytics
+torch>=2.2
+ultralytics>=8.2
