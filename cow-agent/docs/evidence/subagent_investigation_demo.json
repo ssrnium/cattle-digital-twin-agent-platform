@@ -1,0 +1,417 @@
+{
+  "generated_at": "2026-09-27T08:00:41.162644+00:00",
+  "offline": true,
+  "deterministic": "LLM 为脚本化 FakeOpenAIClient，cow-admin 为罐头 MockTransport，可重复运行结果一致",
+  "scenario": {
+    "name": "ZONE-B 多头异常牛并行排查 + 建单审批",
+    "turns": [
+      {
+        "user": "ZONE-B 最近异常的几头牛都什么情况？",
+        "expectation": "主 Agent 用 list_events 圈定异常牛，逐头启动 cow-investigator 子 Agent（只读），汇总报告"
+      },
+      {
+        "user": "那就给 COW-0057 开一张兽医检查工单，依据是它的跛行事件。",
+        "expectation": "写工具 create_work_order park 到主会话 confirm_fn，批准后才执行（PENDING_ACTION 链路在真实部署中等价）"
+      }
+    ]
+  },
+  "permission_boundary": {
+    "subagent_type": "cow-investigator",
+    "subagent_launch_path": "agent 工具 → CowAgent._execute_agent_tool（app/cow_agent.py） → 子 CowAgent.run_once 独立循环（与母版 agent.py:1277 同一 launch 机制）",
+    "write_tools_parent_only": [
+      "create_work_order"
+    ],
+    "permission_mode": "default（子 Agent 继承，不隐式升级 bypassPermissions）",
+    "subagent_tools": [
+      "get_twin_states",
+      "list_devices",
+      "list_events",
+      "list_work_orders",
+      "query_cow_profile",
+      "query_cow_timeline"
+    ]
+  },
+  "turns": [
+    {
+      "user": "ZONE-B 最近异常的几头牛都什么情况？",
+      "answer": "\nZONE-B 近期异常共 2 头：\n1) COW-0042：疑似发情，证据 EVT-2026-092701 / EVT-2026-092702（爬跨 ×2），建议繁殖复核；\n2) COW-0057：跛行，证据 EVT-2026-092703，活动量降至 0.31，建议兽医检查。",
+      "tokens": {
+        "input": 1080,
+        "output": 270
+      },
+      "main_tool_trace": [
+        {
+          "tool": "list_events",
+          "arguments": {
+            "size": 10
+          },
+          "result_preview": "{\"total\": 3, \"items\": [{\"event_id\": \"EVT-2026-092701\", \"event_type\": \"MOUNTING\", \"cow_id\": \"COW-0042\", \"device_id\": \"CAM-B-03\", \"zone\": \"ZONE-B\", \"confidence\": 0.87, \"occurred_at\": \"2026-09-27T06:12:00Z\"}, {\"event_id\": \"EVT-2026-092702\", \"event_type\": \"MOUNTING\", \"cow_id\": \"COW-0042\", \"device_id\": \"CAM-B-03\", \"zone\": \"ZONE-B\", \"confidence\": 0.81, \"occurred_at\": \"2026-09-27T06:40:00Z\"}, {\"event_id\": \"EVT-2026-092703\", \"event_type\": \"LAMENESS\", \"cow_id\": \"COW-0057\", \"device_id\": \"CAM-B-05\", \"zone\""
+        },
+        {
+          "tool": "agent",
+          "arguments": {
+            "type": "cow-investigator",
+            "description": "排查 COW-0042",
+            "prompt": "排查 COW-0042：档案 + 时间线 + 近期事件，给出状态判断与建议。"
+          },
+          "result_preview": "\nCOW-0042 排查报告：疑似发情（SUSPECTED_HEAT）。证据：EVT-2026-092701（爬跨 0.87）、EVT-2026-092702（爬跨 0.81），时间线含发情推断记录。建议：繁殖复核，如需建单请主 Agent 走确认通道。"
+        },
+        {
+          "tool": "agent",
+          "arguments": {
+            "type": "cow-investigator",
+            "description": "排查 COW-0057",
+            "prompt": "排查 COW-0057：档案 + 近期跛行事件，给出状态判断与建议。"
+          },
+          "result_preview": "\nCOW-0057 排查报告：跛行待复核。证据：EVT-2026-092703（跛行 0.76），活动量 0.31、健康状态 ATTENTION。建议：兽医检查工单（写操作归主会话审批）。"
+        }
+      ],
+      "subagent_runs": [
+        {
+          "type": "cow-investigator",
+          "description": "排查 COW-0042",
+          "prompt": "排查 COW-0042：档案 + 时间线 + 近期事件，给出状态判断与建议。",
+          "permission_mode": "default",
+          "confirm_fn_shared_with_parent": true,
+          "tools_granted": [
+            "query_cow_profile",
+            "query_cow_timeline",
+            "list_events",
+            "get_twin_states",
+            "list_work_orders",
+            "list_devices"
+          ],
+          "write_tools_excluded": [
+            "create_work_order"
+          ],
+          "tool_trace": [
+            {
+              "tool": "query_cow_profile",
+              "arguments": {
+                "cow_id": "COW-0042"
+              },
+              "result_preview": "{\"cow_id\": \"COW-0042\", \"zone\": \"ZONE-B\", \"parity\": 2, \"lactation_day\": 143, \"twin\": {\"posture\": \"STANDING\", \"activity_index\": 0.62, \"estrus_status\": \"SUSPECTED_HEAT\", \"health_status\": \"NORMAL\"}}"
+            },
+            {
+              "tool": "query_cow_timeline",
+              "arguments": {
+                "cow_id": "COW-0042",
+                "limit": 10
+              },
+              "result_preview": "[{\"event_id\": \"EVT-2026-092702\", \"kind\": \"MOUNTING\", \"occurred_at\": \"2026-09-27T06:40:00Z\", \"note\": \"爬跨置信度 0.81\"}, {\"event_id\": \"EVT-2026-092701\", \"kind\": \"MOUNTING\", \"occurred_at\": \"2026-09-27T06:12:00Z\", \"note\": \"爬跨置信度 0.87\"}, {\"event_id\": null, \"kind\": \"TWIN_INFERENCE\", \"occurred_at\": \"2026-09-27T06:41:00Z\", \"note\": \"发情推断 SUSPECTED_HEAT（连续 2 次爬跨）\"}]"
+            }
+          ],
+          "denied_tool_calls": [],
+          "tokens": {
+            "input": 240,
+            "output": 60
+          },
+          "report": "\nCOW-0042 排查报告：疑似发情（SUSPECTED_HEAT）。证据：EVT-2026-092701（爬跨 0.87）、EVT-2026-092702（爬跨 0.81），时间线含发情推断记录。建议：繁殖复核，如需建单请主 Agent 走确认通道。"
+        },
+        {
+          "type": "cow-investigator",
+          "description": "排查 COW-0057",
+          "prompt": "排查 COW-0057：档案 + 近期跛行事件，给出状态判断与建议。",
+          "permission_mode": "default",
+          "confirm_fn_shared_with_parent": true,
+          "tools_granted": [
+            "query_cow_profile",
+            "query_cow_timeline",
+            "list_events",
+            "get_twin_states",
+            "list_work_orders",
+            "list_devices"
+          ],
+          "write_tools_excluded": [
+            "create_work_order"
+          ],
+          "tool_trace": [
+            {
+              "tool": "query_cow_profile",
+              "arguments": {
+                "cow_id": "COW-0057"
+              },
+              "result_preview": "{\"cow_id\": \"COW-0057\", \"zone\": \"ZONE-B\", \"parity\": 3, \"lactation_day\": 88, \"twin\": {\"posture\": \"WALKING\", \"activity_index\": 0.31, \"estrus_status\": \"NORMAL\", \"health_status\": \"ATTENTION\"}}"
+            },
+            {
+              "tool": "query_cow_timeline",
+              "arguments": {
+                "cow_id": "COW-0057",
+                "limit": 10
+              },
+              "result_preview": "[{\"event_id\": \"EVT-2026-092703\", \"kind\": \"LAMENESS\", \"occurred_at\": \"2026-09-27T07:05:00Z\", \"note\": \"跛行置信度 0.76\"}, {\"event_id\": null, \"kind\": \"TWIN_INFERENCE\", \"occurred_at\": \"2026-09-27T07:06:00Z\", \"note\": \"活动量降至 0.31，健康状态 ATTENTION\"}]"
+            }
+          ],
+          "denied_tool_calls": [],
+          "tokens": {
+            "input": 360,
+            "output": 90
+          },
+          "report": "\nCOW-0057 排查报告：跛行待复核。证据：EVT-2026-092703（跛行 0.76），活动量 0.31、健康状态 ATTENTION。建议：兽医检查工单（写操作归主会话审批）。"
+        }
+      ]
+    },
+    {
+      "user": "那就给 COW-0057 开一张兽医检查工单，依据是它的跛行事件。",
+      "answer": "\n已创建兽医检查工单 WO-20260927-0001（COW-0057，依据 EVT-2026-092703）。",
+      "tokens": {
+        "input": 240,
+        "output": 60
+      },
+      "main_tool_trace": [
+        {
+          "tool": "create_work_order",
+          "arguments": {
+            "type": "VET_CHECK",
+            "cow_id": "COW-0057",
+            "source_event_id": "EVT-2026-092703",
+            "priority": "NORMAL",
+            "description": "跛行复核：LAMENESS 事件 EVT-2026-092703，活动量 0.31，建议兽医检查。"
+          },
+          "result_preview": "{\"id\": 1001, \"orderNo\": \"WO-20260927-0001\", \"state\": \"NEW\"}"
+        }
+      ],
+      "confirmations": [
+        {
+          "message": {
+            "kind": "cow_write",
+            "tool": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0057",
+              "source_event_id": "EVT-2026-092703",
+              "priority": "NORMAL",
+              "description": "跛行复核：LAMENESS 事件 EVT-2026-092703，活动量 0.31，建议兽医检查。"
+            }
+          },
+          "decision": "approved"
+        }
+      ]
+    }
+  ],
+  "llm_calls": [
+    {
+      "role": "main",
+      "tools": [
+        "read_file",
+        "write_file",
+        "edit_file",
+        "list_files",
+        "grep_search",
+        "run_shell",
+        "skill",
+        "compact_context",
+        "skill_evolve",
+        "skill_create",
+        "agent",
+        "tool_search",
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices",
+        "create_work_order"
+      ],
+      "message_count": 2
+    },
+    {
+      "role": "main",
+      "tools": [
+        "read_file",
+        "write_file",
+        "edit_file",
+        "list_files",
+        "grep_search",
+        "run_shell",
+        "skill",
+        "compact_context",
+        "skill_evolve",
+        "skill_create",
+        "agent",
+        "tool_search",
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices",
+        "create_work_order"
+      ],
+      "message_count": 4
+    },
+    {
+      "role": "investigator",
+      "tools": [
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices"
+      ],
+      "message_count": 2
+    },
+    {
+      "role": "investigator",
+      "tools": [
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices"
+      ],
+      "message_count": 5
+    },
+    {
+      "role": "main",
+      "tools": [
+        "read_file",
+        "write_file",
+        "edit_file",
+        "list_files",
+        "grep_search",
+        "run_shell",
+        "skill",
+        "compact_context",
+        "skill_evolve",
+        "skill_create",
+        "agent",
+        "tool_search",
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices",
+        "create_work_order"
+      ],
+      "message_count": 6
+    },
+    {
+      "role": "investigator",
+      "tools": [
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices"
+      ],
+      "message_count": 2
+    },
+    {
+      "role": "investigator",
+      "tools": [
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices"
+      ],
+      "message_count": 4
+    },
+    {
+      "role": "investigator",
+      "tools": [
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices"
+      ],
+      "message_count": 6
+    },
+    {
+      "role": "main",
+      "tools": [
+        "read_file",
+        "write_file",
+        "edit_file",
+        "list_files",
+        "grep_search",
+        "run_shell",
+        "skill",
+        "compact_context",
+        "skill_evolve",
+        "skill_create",
+        "agent",
+        "tool_search",
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices",
+        "create_work_order"
+      ],
+      "message_count": 8
+    },
+    {
+      "role": "main",
+      "tools": [
+        "read_file",
+        "write_file",
+        "edit_file",
+        "list_files",
+        "grep_search",
+        "run_shell",
+        "skill",
+        "compact_context",
+        "skill_evolve",
+        "skill_create",
+        "agent",
+        "tool_search",
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices",
+        "create_work_order"
+      ],
+      "message_count": 10
+    },
+    {
+      "role": "main",
+      "tools": [
+        "read_file",
+        "write_file",
+        "edit_file",
+        "list_files",
+        "grep_search",
+        "run_shell",
+        "skill",
+        "compact_context",
+        "skill_evolve",
+        "skill_create",
+        "agent",
+        "tool_search",
+        "query_cow_profile",
+        "query_cow_timeline",
+        "list_events",
+        "get_twin_states",
+        "list_work_orders",
+        "list_devices",
+        "create_work_order"
+      ],
+      "message_count": 12
+    }
+  ],
+  "backend_writes": [
+    {
+      "body": {
+        "type": "VET_CHECK",
+        "cowId": "COW-0057",
+        "deviceId": null,
+        "sourceEventId": "EVT-2026-092703",
+        "priority": "NORMAL",
+        "description": "跛行复核：LAMENESS 事件 EVT-2026-092703，活动量 0.31，建议兽医检查。"
+      },
+      "action_id": null
+    }
+  ]
+}
