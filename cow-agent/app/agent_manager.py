@@ -121,7 +121,7 @@ class AgentManager:
         """patch.py 对领域写工具产生的 message 是 JSON；其余（如写文件）是原文。"""
         try:
             parsed = json.loads(message)
-            if isinstance(parsed, dict) and parsed.get("kind") == "cow_write":
+            if isinstance(parsed, dict) and parsed.get("kind") in {"cow_write", "mcp_write"}:
                 return str(parsed.get("tool", "")), dict(parsed.get("arguments") or {})
         except (ValueError, TypeError):
             pass
@@ -151,6 +151,27 @@ class AgentManager:
                 },
             })
         return result
+
+    async def shutdown(self) -> None:
+        """Close session agents and resolve parked approvals during app shutdown."""
+        pending_entries = list(self._pending.values())
+        for pending in pending_entries:
+            if not pending.future.done():
+                pending.future.set_result(False)
+            if pending.action_id:
+                await cow_tools.expire_action(pending.action_id)
+        self._pending.clear()
+
+        entries = list(self._sessions.values())
+        self._sessions.clear()
+        for entry in entries:
+            close = getattr(entry.agent, "close", None)
+            if close is None:
+                continue
+            try:
+                await close()
+            except Exception:
+                logger.exception("agent session cleanup failed: %s", entry.session_id)
 
 
 agent_manager = AgentManager()

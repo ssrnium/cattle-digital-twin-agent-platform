@@ -394,6 +394,17 @@ class Agent:
     def get_token_usage(self) -> dict:
         return {"input":self.total_input_tokens, "output":self.total_output_tokens}
 
+    async def close(self) -> None:
+        """Release runtime resources owned by this Agent session."""
+        background_tasks = list(self._background_skill_tasks)
+        self._background_skill_tasks.clear()
+        for task in background_tasks:
+            if not task.done():
+                task.cancel()
+        if background_tasks:
+            await asyncio.gather(*background_tasks, return_exceptions=True)
+        await self._mcp_manager.disconnect_all()
+
     #主入口
 
     async def  chat(self, user_message:str)->None:
@@ -1155,7 +1166,12 @@ class Agent:
                 custom_system_prompt=result["prompt"],
                 custom_tools=tools,
                 is_sub_agent=True,
-                permission_mode="plan" if self.permission_mode == "plan" else "bypassPermissions",
+                # A forked skill inherits the parent's boundary. In
+                # particular, default mode must not silently become
+                # bypassPermissions; the same confirm_fn parks approvals in
+                # the owning session.
+                permission_mode=self.permission_mode,
+                confirm_fn=self.confirm_fn,
             )
             try:
                 sub_result = await sub_agent.run_once(inp.get("args") or "Execute this skill task.")
@@ -1272,7 +1288,10 @@ class Agent:
             custom_system_prompt=config["system_prompt"],
             custom_tools=config["tools"],
             is_sub_agent=True,
-            permission_mode="plan" if self.permission_mode == "plan" else "bypassPermissions",
+            # Keep sub-agent writes behind the caller's permission mode and
+            # approval callback instead of granting an implicit bypass.
+            permission_mode=self.permission_mode,
+            confirm_fn=self.confirm_fn,
         )
         try:
             result = await sub_agent.run_once(prompt)

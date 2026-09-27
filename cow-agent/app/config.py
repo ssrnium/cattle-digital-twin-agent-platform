@@ -1,4 +1,11 @@
+from __future__ import annotations
+
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class Settings(BaseSettings):
@@ -25,6 +32,12 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
+
+def agent_home_path(value: str | None = None) -> Path:
+    """Resolve AGENT_HOME against the service root, never the mutable cwd."""
+    raw = Path(value or settings.AGENT_HOME)
+    return (raw if raw.is_absolute() else PROJECT_ROOT / raw).resolve()
 
 
 settings = Settings()

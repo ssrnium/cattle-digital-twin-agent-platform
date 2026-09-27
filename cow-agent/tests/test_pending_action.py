@@ -94,6 +94,29 @@ def test_timeout_expires_registered_action(monkeypatch, action_stub):
     assert expired == ["act-0009"], "120s 超时自动拒绝必须同步作废 admin 侧凭证"
 
 
+def test_shutdown_denies_and_expires_pending_action(monkeypatch, action_stub):
+    expired = []
+
+    async def fake_register(session_id, tool, arguments):
+        return "act-shutdown"
+
+    async def fake_expire(action_id):
+        expired.append(action_id)
+
+    monkeypatch.setattr(cow_tools, "register_action", fake_register)
+    monkeypatch.setattr(cow_tools, "expire_action", fake_expire)
+    manager = AgentManager()
+
+    async def scenario():
+        task = asyncio.create_task(manager._park_confirm("sess-shutdown", WRITE_MSG))
+        await asyncio.sleep(0.05)
+        await manager.shutdown()
+        return await task
+
+    assert run(scenario()) is False
+    assert expired == ["act-shutdown"]
+
+
 def test_non_domain_write_confirm_skips_registration(monkeypatch, action_stub):
     async def fake_register(session_id, tool, arguments):
         raise AssertionError("非领域写工具不应注册 PENDING_ACTION")

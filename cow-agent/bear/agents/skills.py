@@ -17,6 +17,7 @@ from .skill_evolution import (
     record_skill_feedback,
     record_skill_invocation,
     record_skill_usage_judgments,
+    rollback_skill_file,
 )
 
 
@@ -114,7 +115,9 @@ def _load_skills_from_dir( base_dir: Path, source: str, skills:dict[str, SkillDe
 def _parse_skill_file(file_path: Path, source: str, skill_dir: str) -> SkillDefinition:
     try:
         # SKILL.md = frontmatter 配置 + markdown 正文。
-        raw = file_path.read_text()
+        # Skill files are repository artifacts and are written as UTF-8. An
+        # implicit Windows code page makes discovery fail silently on Windows.
+        raw = file_path.read_text(encoding="utf-8")
         result = parse_frontmatter(raw)
         meta = result.meta
 
@@ -430,5 +433,12 @@ def skill_stats() -> str:
 def record_usage_judgments(judgments: list[dict[str, Any]]) -> dict[str, Any]:
     result = record_skill_usage_judgments(judgments)
     if result.get("pruned"):
+        reset_skill_cache()
+    return result
+
+
+def rollback_skill(skill_name: str, target: str = "active") -> dict:
+    result = rollback_skill_file(skill_name=skill_name, target=target)
+    if result.get("ok"):
         reset_skill_cache()
     return result

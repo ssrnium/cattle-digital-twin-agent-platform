@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ranch-demo": {
+      "command": "python",
+      "args": ["mcp_fixture.py"],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

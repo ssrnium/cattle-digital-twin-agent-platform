@@ -29,6 +29,7 @@ MCP 客户端模块。
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import os
 import subprocess
@@ -36,6 +37,24 @@ from pathlib import Path
 from typing import Any
 
 from .ui import print_error, print_info
+
+
+# Tool policy is registered when MCP tools are discovered. Missing
+# readOnlyHint is treated as write-capable and must be confirmed.
+_MCP_TOOL_READ_ONLY: dict[str, bool] = {}
+MCP_REQUEST_TIMEOUT_SECONDS = 15.0
+
+
+def register_tool_policy(prefixed_name: str, *, read_only: bool) -> None:
+    _MCP_TOOL_READ_ONLY[str(prefixed_name)] = bool(read_only)
+
+
+def is_mcp_write_tool(name: str) -> bool:
+    return str(name).startswith("mcp__") and not _MCP_TOOL_READ_ONLY.get(str(name), False)
+
+
+def reset_tool_policies() -> None:
+    _MCP_TOOL_READ_ONLY.clear()
 
 
 # ─── 单个 MCP 连接：一个 McpConnection 对应一个 MCP Server 子进程 ──────────────────
@@ -100,6 +119,8 @@ class McpConnection:
             msg_id = msg.get("id")
             if msg_id is not None and msg_id in self._pending:
                 fut = self._pending.pop(msg_id)
+                if fut.done():
+                    continue
                 if "error" in msg:
                     # Server 返回 JSON-RPC error 时，把等待中的 Future 标记为异常。
                     e = msg["error"]
@@ -125,22 +146,28 @@ class McpConnection:
         #   "params": {...}
         # }
         msg = json.dumps({"jsonrpc": "2.0", "id": req_id, "method": method, "params": params or {}})
-        # stdio 传输使用换行作为消息边界。
-        self._process.stdin.write((msg + "\n").encode())
-        await self._process.stdin.drain()
-
-        # 创建 Future 并登记到 _pending，等待 _read_loop 收到相同 id 的响应后唤醒。
-        loop = asyncio.get_event_loop()
+        # Register the Future before writing. A fast local server can answer
+        # before drain() returns; registering afterwards loses that response.
+        loop = asyncio.get_running_loop()
         fut: asyncio.Future = loop.create_future()
         self._pending[req_id] = fut
-        return await fut
+        try:
+            # stdio 传输使用换行作为消息边界。
+            self._process.stdin.write((msg + "\n").encode("utf-8"))
+            await self._process.stdin.drain()
+            return await asyncio.wait_for(fut, timeout=MCP_REQUEST_TIMEOUT_SECONDS)
+        except Exception:
+            self._pending.pop(req_id, None)
+            if not fut.done():
+                fut.cancel()
+            raise
 
     def _send_notification(self, method: str, params: dict | None = None) -> None:
         """发送一条 JSON-RPC notification。notification 没有 id，也不等待响应。"""
         if not self._process or not self._process.stdin:
             return
         msg = json.dumps({"jsonrpc": "2.0", "method": method, "params": params or {}})
-        self._process.stdin.write((msg + "\n").encode())
+        self._process.stdin.write((msg + "\n").encode("utf-8"))
 
     async def initialize(self) -> None:
         """执行 MCP 初始化握手。"""
@@ -164,6 +191,7 @@ class McpConnection:
                 "name": t["name"],
                 "description": t.get("description", ""),
                 "inputSchema": t.get("inputSchema"),
+                "annotations": t.get("annotations") if isinstance(t.get("annotations"), dict) else {},
                 "serverName": self.server_name,
             }
             for t in result["tools"]
@@ -195,6 +223,31 @@ class McpConnection:
                 pass
             self._process = None
         # 连接关闭后，所有还没收到响应的请求都不可能再完成，需要显式置为异常。
+        for fut in self._pending.values():
+            if not fut.done():
+                fut.set_exception(RuntimeError(f"MCP server '{self.server_name}' closed"))
+        self._pending.clear()
+
+    async def aclose(self) -> None:
+        """Close the process and await its pipes before the event loop ends."""
+        reader_task = self._reader_task
+        self._reader_task = None
+        if reader_task:
+            reader_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await reader_task
+
+        process = self._process
+        self._process = None
+        if process:
+            if process.stdin:
+                process.stdin.close()
+            if process.returncode is None:
+                with contextlib.suppress(ProcessLookupError):
+                    process.kill()
+            with contextlib.suppress(Exception):
+                await asyncio.wait_for(process.wait(), timeout=2.0)
+
         for fut in self._pending.values():
             if not fut.done():
                 fut.set_exception(RuntimeError(f"MCP server '{self.server_name}' closed"))
@@ -256,21 +309,20 @@ class McpManager:
             except Exception as e:
                 # 单个 Server 失败不影响其他 Server。失败连接需要关闭以清理子进程。
                 print_error(f"MCP failed to connect: {name}: {e}")
-                conn.close()
+                await conn.aclose()
 
     def get_tool_definitions(self) -> list[dict]:
-        """返回 Agent/Anthropic 可直接使用的工具定义，并给 MCP 工具名加前缀。"""
-        return [
-            {
-                # 前缀格式：mcp__服务名__工具名。
-                # 这样可以避免 MCP 工具和内置工具重名，也方便 call_tool() 反向解析路由。
-                "name": f"mcp__{t['serverName']}__{t['name']}",
+        definitions: list[dict] = []
+        for t in self._tools:
+            name = f"mcp__{t['serverName']}__{t['name']}"
+            annotations = t.get("annotations") if isinstance(t.get("annotations"), dict) else {}
+            register_tool_policy(name, read_only=annotations.get("readOnlyHint") is True)
+            definitions.append({
+                "name": name,
                 "description": t.get("description") or f"MCP tool {t['name']} from {t['serverName']}",
-                # Anthropic 工具字段叫 input_schema；MCP 原始工具字段一般叫 inputSchema。
                 "input_schema": t.get("inputSchema") or {"type": "object", "properties": {}},
-            }
-            for t in self._tools
-        ]
+            })
+        return definitions
 
     def is_mcp_tool(self, name: str) -> bool:
         """判断一个工具名是否是 MCP 工具名。"""
@@ -293,9 +345,10 @@ class McpManager:
     async def disconnect_all(self) -> None:
         """断开所有 MCP Server 连接，并清空工具缓存。"""
         for conn in self._connections.values():
-            conn.close()
+            await conn.aclose()
         self._connections.clear()
         self._tools.clear()
+        reset_tool_policies()
         self._connected = False
 
     # ─── 配置加载 ──────────────────────────────────────
@@ -308,11 +361,16 @@ class McpManager:
         global_path = Path.home() / ".bear" / "settings.json"
         self._merge_config_file(global_path, merged)
 
-        # 2. 当前项目配置：<cwd>/.bear/settings.json
+        # 2. Project-root fallback keeps MCP available after service startup
+        # changes cwd to AGENT_HOME.
+        project_root = Path(__file__).resolve().parents[2]
+        self._merge_config_file(project_root / ".mcp.json", merged)
+
+        # 3. 当前项目配置：<cwd>/.bear/settings.json
         project_path = Path.cwd() / ".bear" / "settings.json"
         self._merge_config_file(project_path, merged)
 
-        # 3. Claude Code 约定配置：<cwd>/.mcp.json
+        # 4. Claude Code 约定配置：<cwd>/.mcp.json
         mcp_json_path = Path.cwd() / ".mcp.json"
         self._merge_config_file(mcp_json_path, merged)
 
@@ -323,7 +381,7 @@ class McpManager:
         if not path.exists():
             return
         try:
-            raw = json.loads(path.read_text())
+            raw = json.loads(path.read_text(encoding="utf-8"))
             # 支持两种格式：
             # 1. {"mcpServers": {"name": {...}}}
             # 2. {"name": {...}}

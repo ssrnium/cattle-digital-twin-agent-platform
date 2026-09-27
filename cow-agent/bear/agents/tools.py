@@ -628,6 +628,22 @@ def check_permission(
     if rule_result == "allow":
         return {"action": "allow"}
 
+    # MCP servers declare readOnlyHint during discovery. Unknown or
+    # unannotated external tools are treated as writes and require the same
+    # confirmation boundary as local side effects.
+    if tool_name.startswith("mcp__"):
+        try:
+            from .mcp_client import is_mcp_write_tool
+            if not is_mcp_write_tool(tool_name):
+                return {"action": "allow"}
+        except Exception:
+            # A discovery failure must fail closed for an external tool.
+            pass
+        message = f"MCP write tool requires confirmation: {tool_name}"
+        if mode in {"plan", "dontAsk"}:
+            return {"action": "deny", "message": f"Blocked external side effect: {tool_name}"}
+        return {"action": "confirm", "message": message}
+
     if tool_name in READ_TOOLS:
         return {"action": "allow"}
 

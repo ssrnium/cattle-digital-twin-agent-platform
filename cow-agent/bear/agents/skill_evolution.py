@@ -445,6 +445,53 @@ def evolve_skill_file(
     return {"ok": True, **event}
 
 
+def rollback_skill_file(
+    *,
+    skill_name: str,
+    target: str = "active",
+    active_dir: str = "",
+    actor: str = "agent",
+) -> dict[str, Any]:
+    """Restore the most recent pre-evolution snapshot for a skill.
+
+    Snapshots are append-only JSONL records written before every merge. Keeping
+    rollback explicit makes feedback changes reviewable and recoverable without
+    depending on an LLM or mutating the provenance history.
+    """
+    skill_file = resolve_skill_file(skill_name, target=target, active_dir=active_dir)
+    if not skill_file:
+        return {"ok": False, "error": f"Skill not found: {skill_name}"}
+    history_path = get_evolution_dir() / HISTORY_DIR / f"{_safe_skill_slug(skill_name)}.jsonl"
+    if not history_path.is_file():
+        return {"ok": False, "error": f"No snapshot history for skill: {skill_name}"}
+
+    snapshot: dict[str, Any] | None = None
+    for line in reversed(history_path.read_text(encoding="utf-8", errors="replace").splitlines()):
+        try:
+            item = json.loads(line)
+        except Exception:
+            continue
+        if item.get("event") == "snapshot" and item.get("content"):
+            snapshot = item
+            break
+    if snapshot is None:
+        return {"ok": False, "error": f"No usable snapshot for skill: {skill_name}"}
+
+    skill_file.write_text(str(snapshot["content"]), encoding="utf-8")
+    event = {
+        "event": "rollback",
+        "time": _utc_now(),
+        "actor": actor,
+        "skill": skill_name,
+        "file": str(skill_file),
+        "restored_version": snapshot.get("version", ""),
+        "snapshot_time": snapshot.get("time", ""),
+        "history": str(history_path),
+    }
+    _append_jsonl(get_evolution_dir() / USAGE_LOG, event)
+    return {"ok": True, **event}
+
+
 def record_skill_usage_judgments(judgments: list[dict[str, Any]]) -> dict[str, Any]:
     stats_path = get_evolution_dir() / SKILL_USAGE_STATS
     stats = _read_json(stats_path, {})
