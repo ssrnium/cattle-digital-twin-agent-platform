@@ -59,6 +59,44 @@ def main():
     results, session_id = [], None
     for tid, kind, question, want_tools, want_keys, note in TASKS:
         print(f"\n>>> [{tid}] {question[:40]}", flush=True)
+        if tid == "write-confirm":
+            # chat 会在写操作 park 处阻塞等待审批：并发轮询 pending → 决策 → 再收结果
+            import threading
+            holder = {}
+            def _call():
+                try:
+                    holder["data"] = chat(token, session_id, question, timeout=170)
+                except Exception as ex:
+                    holder["error"] = str(ex)[:200]
+            th = threading.Thread(target=_call, daemon=True)
+            th.start()
+            pend = None
+            for _ in range(40):
+                for s in sessions(token):
+                    if s.get("session_id") == session_id and s.get("pending_confirmation"):
+                        pend = s["pending_confirmation"]
+                        break
+                if pend:
+                    break
+                time.sleep(1.5)
+            checks = {"confirm_parked": pend is not None,
+                      "confirm_tool": (pend or {}).get("tool") == "create_work_order"}
+            if pend:
+                httpx.post(ADMIN + "/api/v1/agent/confirm",
+                           headers={"Authorization": f"Bearer {token}"},
+                           json={"session_id": session_id, "approved": False}, timeout=20)
+            th.join(timeout=170)
+            data = holder.get("data") or {}
+            reply = data.get("reply") or ""
+            trace = [t.get("tool") for t in (data.get("tool_trace") or [])]
+            tokens = data.get("tokens") or {}
+            rec = {"id": tid, "kind": kind, "note": note,
+                   "session_id": session_id, "tools_called": trace, "tokens": tokens,
+                   "reply_preview": reply[:300], "checks": checks,
+                   "pass": all(checks.values())}
+            print(f"  confirm park 实证: {pend and pend.get('tool')} pass={rec['pass']}", flush=True)
+            results.append(rec)
+            continue
         t0 = time.time()
         try:
             data = chat(token, session_id, question)

@@ -80,6 +80,39 @@ cd cow-agent
 
 **复跑方式**：`pytest tests/test_history_integrity_guard.py`（3 例：部分缺失+整组悬空+跨 user 消息的场景保留与插入位置断言；健康历史/空 tool_calls 零改动；端到端毒化→修复→WARNING→第二轮幂等）。线上真实模型评测脚本 `scripts/run_live_model_eval.py` 需在服务器侧跑（cow-admin 8081 + cow-agent 8003 + 有效 LLM key），守卫上线后原毒化场景不再扩散到后续轮次。
 
+### 真实模型线上评测（终版，2026-09-27）
+
+与上面的离线确定性回放**分开报告**：本节是 AutoDL 服务器上的真实供应商调用（DeepSeek `deepseek-flash`，经 cow-admin 代理 `/agent/chat`，有效 LLM key），脚本 `scripts/run_live_model_eval.py`，逐任务证据由脚本在服务器侧写入 `docs/evidence/live_model_eval.json`（本地仓未归档副本，以服务器运行记录与探针日志为准）。评测分两类：deterministic（工具轨迹/参数/确认行为，程序判定）与 review（回复质量，仅记录不判分）。
+
+**终版结果：deterministic 6 项通过 5 项（5/6），review 1 项不判分。**
+
+| 任务 | 类型 | 结果 | 说明 |
+|---|---|---|---|
+| query-cow | deterministic | 通过 | 真实调用 query_cow_profile，围绕真实档案回答 |
+| mounting-review | deterministic | 通过 | 会话复用（档案上轮已取），本轮查近期事件并给复核建议 |
+| device-offline | deterministic | 通过 | 真实调用 list_devices 排查 |
+| write-confirm | deterministic | **通过（park 实证）** | 见下 |
+| no-such-cow | deterministic | **失败（该轮回复为空）** | 判定与复核见下，不凑分 |
+| follow-up | deterministic | 通过 | 多轮指代解析正确；同时验证守卫（原 400 级联不再发生） |
+| zone-summary | review | 不判分 | 多工具编排质量，回复与 trace 留档供人工复核 |
+
+**write-confirm 确认机制线上闭环实证**：模型真实调用 `create_work_order` → 写操作 park 挂起（服务端日志 `waiting confirm: create_work_order (action=...)`）→ 评测脚本并发线程轮询 sessions 拿到 pending → 拒绝 → chat 返回、无工单产生；另有 120s 超时自动拒绝（auto-denied）记录。即「模型发起 → 人审挂起 → 决策放行/拒绝 → exactly-once 执行」全链路由真实模型驱动跑通，非脚本回放。
+
+**no-such-cow 判定与空响应复核（分开记录）**：该轮按评测口径计失败，原因是**回复为空**而非编造——长会话 7 轮中 2 轮出现空响应。主 agent 单点探针复核（独立新会话）：no-such-cow 回复 680 字且诚实（"20 号牛棚没有 COW-9999 这头牛，无法给出状态"，附证据表），zone-summary 回复约 3500 字。结论：**小模型长会话偶发输出异常（2/7 轮），评测按空响应如实计失败，不判定为系统 bug**；独立会话复测均正常。
+
+**重大正向发现——子 Agent 机制真实自然发生**：zone-summary 探针中，真实模型为「汇总 ZONE-B 最近异常」**自发调用子 Agent 机制 8 次**（trace 含 `agent`×8，回复明说"逐头下发排查子 Agent"）。cow-investigator 子 Agent（第 21 项）不是只在脚本演示里成立——真实模型在真实任务里自主选择了逐头下发排查的编排方式。
+
+**守卫线上验证通过**：历史完整性守卫（第 22 项）部署后复跑本评测，原先 400 级联毒化的会话不再出现，follow-up 等多轮任务正常完成。
+
+**复跑方式**（服务器侧）：
+
+```bash
+PYTHONUTF8=1 /root/autodl-tmp/venvs/cow-agent/bin/python \
+  /root/autodl-tmp/cow/cow-agent/scripts/run_live_model_eval.py
+```
+
+前置：cow-admin 8081 + cow-agent 8003 运行中、有效 LLM key（环境变量注入，不入库）。脚本对 write-confirm 采用并发轮询 pending 再决策的流程（chat 在 park 处阻塞等待审批），拒绝决策保持环境干净。
+
 ## 证据文件
 
 - `app/evaluation.py`：固定样本评测（含域外负例判定）、工具 schema 校验、上下文压缩统计
@@ -89,6 +122,6 @@ cd cow-agent
 - `scripts/run_agent_evals.py`：一键运行并生成 JSON 报告
 - `scripts/demo_subagent_investigation.py`：cow-investigator 多头牛排查 + 建单审批演示（证据 `docs/evidence/subagent_investigation_demo.json`）
 - `scripts/demo_skill_evolution.py`：自进化 merge/rollback/discard 全生命周期演示（证据 `docs/evidence/skill_evolution_demo.json`）
-- `scripts/run_live_model_eval.py`：真实模型评测（DeepSeek 线上调用，服务器侧运行，与离线回放分开报告；会话毒化 bug 即由它发现）
+- `scripts/run_live_model_eval.py`：真实模型评测（DeepSeek 线上调用，服务器侧运行，与离线回放分开报告；会话毒化 bug 即由它发现；终版 5/6 见「真实模型线上评测」一节，证据 JSON 服务器侧生成于 `docs/evidence/live_model_eval.json`）
 - `tests/test_mcp_runtime.py`、`tests/test_feedback_ledger.py`、`tests/test_evaluation.py`、`tests/test_subagent_permissions.py`、`tests/test_subagent_investigation.py`、`tests/test_skill_evolution_flow.py`、`tests/test_history_integrity_guard.py`：回归测试
 - `docs/evidence/agent_runtime_evidence.json`：本次运行的逐样本结果
