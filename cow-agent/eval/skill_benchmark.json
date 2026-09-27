@@ -1,0 +1,94 @@
+[
+  {
+    "id": "mounting-review-01",
+    "query": "请复核 COW-0042 最近的爬跨事件，判断是否需要配种复核。",
+    "expected_skill": "mounting-review"
+  },
+  {
+    "id": "mounting-review-02",
+    "query": "42 号牛这两天特别躁动，还总往别的牛身上爬，是不是发情了？",
+    "expected_skill": "mounting-review",
+    "category": "colloquial"
+  },
+  {
+    "id": "mounting-review-03",
+    "query": "COW-0042 爬跨后被其他牛顶撞，走路有点瘸，要先按发情复核配种还是按跛行处理？",
+    "expected_skill": "mounting-review",
+    "category": "distractor"
+  },
+  {
+    "id": "mounting-review-04",
+    "query": "帮我复核 COW-0017 今天的 MOUNTING 事件是否符合配种条件。",
+    "expected_skill": "mounting-review",
+    "category": "standard"
+  },
+  {
+    "id": "lameness-check-01",
+    "query": "COW-0042 反复跛行，帮我按 LAMENESS 排查并给兽医检查建议。",
+    "expected_skill": "lameness-check"
+  },
+  {
+    "id": "lameness-check-02",
+    "query": "有头牛走路一瘸一拐的，编号 COW-0017，帮忙看看咋回事。",
+    "expected_skill": "lameness-check",
+    "category": "colloquial"
+  },
+  {
+    "id": "lameness-check-03",
+    "query": "COW-0042 上周爬跨之后开始跛行，先排查 LAMENESS 证据再说。",
+    "expected_skill": "lameness-check",
+    "category": "distractor"
+  },
+  {
+    "id": "device-offline-01",
+    "query": "摄像头 CAM-03 离线且待补传不断增加，应该怎么排查？",
+    "expected_skill": "device-offline"
+  },
+  {
+    "id": "device-offline-02",
+    "query": "3 号摄像头又掉线了，手机上看不到画面，缓存的数据会不会丢？",
+    "expected_skill": "device-offline",
+    "category": "colloquial"
+  },
+  {
+    "id": "device-offline-03",
+    "query": "边缘节点断网超过半小时，pendingCount 一直涨，如何处置？",
+    "expected_skill": "device-offline",
+    "category": "standard"
+  },
+  {
+    "id": "device-offline-04",
+    "query": "CAM-03 离线恢复后补传没归零，是不是要派设备维修工单？",
+    "expected_skill": "device-offline",
+    "category": "distractor"
+  },
+  {
+    "id": "report-style-01",
+    "query": "给场长写一份今日异常日报，结论先行并把风险和建议分开。",
+    "expected_skill": "report-style"
+  },
+  {
+    "id": "report-style-02",
+    "query": "场长一会儿要听汇报，帮我把今天的异常情况捋成几句话，先说结论。",
+    "expected_skill": "report-style",
+    "category": "colloquial"
+  },
+  {
+    "id": "report-style-03",
+    "query": "汇总本周爬跨与跛行事件，生成面向管理层的周报，风险和处置建议分开列。",
+    "expected_skill": "report-style",
+    "category": "distractor"
+  },
+  {
+    "id": "ood-negative-01",
+    "query": "今天天气怎么样？适合打开牛舍通风窗吗？",
+    "expected_skill": null,
+    "category": "ood_negative"
+  },
+  {
+    "id": "ood-negative-02",
+    "query": "用 Python 写个脚本把 CSV 文件按列求和。",
+    "expected_skill": null,
+    "category": "ood_negative"
+  }
+]

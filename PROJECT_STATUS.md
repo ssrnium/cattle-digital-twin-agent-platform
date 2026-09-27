@@ -38,6 +38,7 @@
 19. **采购视觉权重端到端验证（2026-09-22，AutoDL 服务器实证）**：权重部署服务器 `/root/autodl-tmp/models/cow-behavior/`（**不入库**，`MOUNTING_WEIGHTS_PATH` 引用）；单帧真实推理：正样本 conf=0.717/2 检出、负样本 0 检出（`mocked=false`，`model_version=yolov8m-behavior-10cls-1.0`）；**会话化真实验证**：负×5+正×8+负×7 帧序列 → 恰好 **1 个行为窗口**（f5-f12，peak=0.826，avg=0.746）；窗口事件经设备凭证接入 → 幂等接受 → **孪生 COW-0043 `estrus_status=SUSPECTED_HEAT`**（event_time 与窗口一致）→ 规则引擎 24h 收敛正确跳过重复建单——**"真实视频识别 → 业务事件 → 孪生/工单"链路闭环**（torch 2.14.0+cpu + torchvision 0.29.0+cpu + ultralytics 8.4.158，32 核 CPU 推理）。
 
   **适用边界（如实记录）**：采购权重对真实高位俯拍机位视频（白天+夜视，63 帧抽测）在 conf≥0.05 下全零检出，判定其训练域（平视侧拍特写）不适用该机位；演示素材改用数据集帧的真实检出（`docs/screenshots/vision-mounting-demo.gif`，mounting 峰值 0.90，框为采购模型真实输出）。
+20. **Agent Runtime 闭环 + 评测广度扩展（2026-09-27，cow-agent）**：运行时闭环已落地——MCP stdio 子进程（发现/只读放行/写审批/失败恢复）、FeedbackLedger 反馈状态机（candidate→add/merge/discard+快照回滚）、子 Agent 权限继承修复（default 不再隐式升级 bypassPermissions）。本轮把离线确定性评测从"能用"扩到"能拿出手"：**Skill 检索基准 4→16 例**（4 个领域 SOP 各 3-4 例：标准/口语化/近义干扰问法 + 2 例域外负例，`evaluate_skills` 新增 `expected_skill=null` 负例判定——Top-1 分数须低于生产默认阈值 0.08），**Tool 契约基准 4→12 例**（覆盖全部 7 个领域工具：单工具、2-3 步序列、可选参数省略、cow_id 格式、顺序敏感），另从母版 **API-Bank level-1-api 选 26 条改写成领域兼容格式**（`eval/tool_benchmark_apibank_subset.json`，文件内 `_meta` 记录来源与映射规则，母版只读未复制）。复跑结果（全部真实、未凑分）：Skill Top-1 14/14、MRR 1.0、**OOD 负例拒识 2/2**；Tool 选择/参数合法/序列精确三项 12/12 与 API-Bank 子集 26/26 均 100%；近义干扰案例的候选间距逐条记录在证据 JSON（如 mounting-review-03 目标 0.364 vs 干扰 0.281）。证据：`cow-agent/docs/evidence/agent_runtime_evidence.json`、`cow-agent/docs/agent_runtime_evidence.md`；cow-agent pytest 30 项全绿。
 
 ## 正在开发（下一阶段）
 
@@ -65,7 +66,7 @@
 ```bash
 # 构建/测试
 mvn -s tools/settings.xml package                     # cow-admin（含 64 项单测）
-cow-agent/.venv/Scripts/python -m pytest tests/       # 21 项
+cow-agent/.venv/Scripts/python -m pytest tests/       # 30 项
 npm run build                                         # cow-web
 # 验收
 tools/pw-venv/Scripts/python acceptance/cow_d1_main.py           # 浏览器主链路 15 项

@@ -24,7 +24,7 @@
 
 > 视觉链路说明：接入第三方 YOLOv8m 行为权重（10 类含 mounting，采购资产，权重不随仓库分发）。上方演示为数据集帧序列的真实检出（mounting 峰值 0.90）——模型接入与场景适用性分别验证：数据集口径可用；对高位俯拍机位实测不适用（63 帧零检出，conf≥0.05），该边界已如实记录于 PROJECT_STATUS。
 
-> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 64 项全过——详见 `验收报告_20260914.md` 与 `PROJECT_STATUS.md`；验证脚本见 `acceptance/`；设备心跳在线状态切换可由 `acceptance/cow_device_flip.py` 复现。
+> 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 64 项全过；Agent Runtime 离线证据为 Skill Top-1 100%、工具选择/参数/序列 100%、四个固定任务平均总 Token 下降 67.67%、MCP 3 工具发现与读写/失败场景通过——评测样本规模：Skill 基准 16 例（标准/口语化/近义干扰问法 + 2 例域外负例，负例拒识率 100%）、Tool 契约基准 12 例（覆盖全部 7 个领域工具）、API-Bank 公开基准改写子集 26 例（来源与转换方法见 `cow-agent/eval/tool_benchmark_apibank_subset.json` 文件头 `_meta`）——详见 `cow-agent/docs/agent_runtime_evidence.md` 和 `cow-agent/docs/evidence/agent_runtime_evidence.json`；验证脚本见 `acceptance/` 与 `cow-agent/scripts/run_agent_evals.py`。
 
 ## 项目定位
 

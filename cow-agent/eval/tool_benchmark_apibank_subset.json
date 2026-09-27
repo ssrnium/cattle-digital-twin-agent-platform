@@ -1,0 +1,230 @@
+{
+  "_meta": {
+    "source": "API-Bank (https://github.com/AlibabaResearch/DAMO-ConvAI/tree/main/api-bank)，本地母版拷贝：奶牛数字孪生_AI全栈企业级/技术架构母版/.../BearCode/data/API-Bank/test-data/level-1-api.json（399 条，对话→单 API 调用）",
+    "selection": "按 expected_output 中的 API 名人工选取意图可映射到 7 个领域工具的样本 26 条；跳过 GetUserToken 鉴权样本与银行/账户/计算器等无领域对应的 API",
+    "conversion": "保留原样本的单调用意图结构（查询/筛选/预约/取消/改期/症状），将用户话语改写为奶牛领域中文 query，expected 按 eval/tool_benchmark.json 同一 schema 手工标注为领域工具调用；母版只读，未复制任何原始大文件",
+    "mapping": "QueryHealthData→query_cow_timeline/query_cow_profile；QueryRegistration/ModifyRegistration/CancelRegistration/QueryMeeting→list_work_orders；AppointmentRegistration/AddAgenda→create_work_order；QueryScene/QueryAlarm→list_devices+list_events(DEVICE_OFFLINE)；SymptomSearch/EmergencyKnowledge→LAMENESS/MOUNTING 三步排查序列；RecordHealthData→query_cow_timeline/query_cow_profile"
+  },
+  "cases": [
+    {
+      "id": "apibank-01",
+      "query": "拉取 COW-0056 三月上旬的时间线记录",
+      "expected": [
+        {"name": "query_cow_timeline", "arguments": {"cow_id": "COW-0056"}}
+      ],
+      "source": {"file": "QueryHealthData-level-1-1.jsonl", "id": 0, "original_api": "QueryHealthData", "original_expected": "[QueryHealthData(user_id='A12345', start_time='2023-03-01 00:00:00', end_time='2023-03-31 23:59:59')]"}
+    },
+    {
+      "id": "apibank-02",
+      "query": "看看 COW-0057 最近的健康时间线",
+      "expected": [
+        {"name": "query_cow_timeline", "arguments": {"cow_id": "COW-0057"}}
+      ],
+      "source": {"file": "ModifyRegistration-QueryHealthData-CancelRegistration-level-2-2.jsonl", "id": 2, "original_api": "QueryHealthData", "original_expected": "[QueryHealthData(user_id='J46801', start_time='2023-03-05 00:00:00', end_time='2023-03-12 00:00:00')]"}
+    },
+    {
+      "id": "apibank-03",
+      "query": "查一下 COW-0058 的档案和健康数据",
+      "expected": [
+        {"name": "query_cow_profile", "arguments": {"cow_id": "COW-0058"}}
+      ],
+      "source": {"file": "QueryHealthData-CancelRegistration-SymptomSearch-level-2-1.jsonl", "id": 0, "original_api": "QueryHealthData", "original_expected": "[QueryHealthData(user_id='E97531', start_time='2023-03-05 10:00:00', end_time='2023-03-18 20:00:00')]"}
+    },
+    {
+      "id": "apibank-04",
+      "query": "查一下 5 月 20 日有没有兽医检查工单",
+      "expected": [
+        {"name": "list_work_orders", "arguments": {"type": "VET_CHECK"}}
+      ],
+      "source": {"file": "CancelRegistration-RecordHealthData-QueryRegistration-level-2-1.jsonl", "id": 4, "original_api": "QueryRegistration", "original_expected": "[QueryRegistration(patient_name='Jane Smith', date='2023-05-20')]"}
+    },
+    {
+      "id": "apibank-05",
+      "query": "核对一下 Jane 的预约对应的兽医检查工单",
+      "expected": [
+        {"name": "list_work_orders", "arguments": {"type": "VET_CHECK"}}
+      ],
+      "source": {"file": "CancelRegistration-RecordHealthData-QueryRegistration-level-2-2.jsonl", "id": 4, "original_api": "QueryRegistration", "original_expected": "[QueryRegistration(patient_name='Jane Smith', date='2023-05-20')]"}
+    },
+    {
+      "id": "apibank-06",
+      "query": "给 COW-0060 创建兽医检查预约工单",
+      "expected": [
+        {"name": "create_work_order", "arguments": {"type": "VET_CHECK", "cow_id": "COW-0060", "source_event_id": "E-100", "priority": "HIGH", "description": "依据 E-100 对 COW-0060 做兽医检查"}}
+      ],
+      "source": {"file": "SymptomSearch-AppointmentRegistration-level-2-1.jsonl", "id": 4, "original_api": "AppointmentRegistration", "original_expected": "[AppointmentRegistration(patient_name='Emily Smith', date='2023-10-15', doctor_name='Dr. John')]"}
+    },
+    {
+      "id": "apibank-07",
+      "query": "帮我给 COW-0061 创建一个兽医检查预约",
+      "expected": [
+        {"name": "create_work_order", "arguments": {"type": "VET_CHECK", "cow_id": "COW-0061", "source_event_id": "E-100", "priority": "HIGH", "description": "依据 E-100 对 COW-0061 做兽医检查"}}
+      ],
+      "source": {"file": "RecordHealthData-AppointmentRegistration-EmergencyKnowledge-level-2-5.jsonl", "id": 2, "original_api": "AppointmentRegistration", "original_expected": "[AppointmentRegistration(patient_name='John', date='2023-09-03', doctor_name='Smith')]"}
+    },
+    {
+      "id": "apibank-08",
+      "query": "COW-0062 需要预约兽医，新建一张检查工单",
+      "expected": [
+        {"name": "create_work_order", "arguments": {"type": "VET_CHECK", "cow_id": "COW-0062", "source_event_id": "E-100", "priority": "HIGH", "description": "依据 E-100 对 COW-0062 做兽医检查"}}
+      ],
+      "source": {"file": "RecordHealthData-AppointmentRegistration-EmergencyKnowledge-level-2-1.jsonl", "id": 2, "original_api": "AppointmentRegistration", "original_expected": "[AppointmentRegistration(patient_name='John', date='2023-09-01', doctor_name='Dr. Smith')]"}
+    },
+    {
+      "id": "apibank-09",
+      "query": "预约改期之前，先列出 PROCESSING 状态的工单",
+      "expected": [
+        {"name": "list_work_orders", "arguments": {"state": "PROCESSING"}}
+      ],
+      "source": {"file": "ModifyRegistration-QueryHealthData-CancelRegistration-level-2-2.jsonl", "id": 0, "original_api": "ModifyRegistration", "original_expected": "[ModifyRegistration(appointment_id='34567890', new_appointment_date='2023-03-26', new_appointment_doctor='Dr. Lee')]"}
+    },
+    {
+      "id": "apibank-10",
+      "query": "改约先放一下，列出 DISPATCHED 状态的工单",
+      "expected": [
+        {"name": "list_work_orders", "arguments": {"state": "DISPATCHED"}}
+      ],
+      "source": {"file": "EmergencyKnowledge-ModifyRegistration-RecordHealthData-level-2-3.jsonl", "id": 2, "original_api": "ModifyRegistration", "original_expected": "[ModifyRegistration(appointment_id='90123456', new_appointment_date='2023-10-15', new_appointment_doctor='Dr. Johnson')]"}
+    },
+    {
+      "id": "apibank-11",
+      "query": "要取消的预约还没派单，先列一下 NEW 状态的工单",
+      "expected": [
+        {"name": "list_work_orders", "arguments": {"state": "NEW"}}
+      ],
+      "source": {"file": "CancelRegistration-RecordHealthData-QueryRegistration-level-2-1.jsonl", "id": 0, "original_api": "CancelRegistration", "original_expected": "[CancelRegistration(appointment_id='78901234')]"}
+    },
+    {
+      "id": "apibank-12",
+      "query": "取消申请提交前，列出 CLOSED 状态的工单核对",
+      "expected": [
+        {"name": "list_work_orders", "arguments": {"state": "CLOSED"}}
+      ],
+      "source": {"file": "ModifyRegistration-QueryHealthData-CancelRegistration-level-2-2.jsonl", "id": 4, "original_api": "CancelRegistration", "original_expected": "[CancelRegistration(appointment_id='90123456')]"}
+    },
+    {
+      "id": "apibank-13",
+      "query": "看看早班巡查场景覆盖了哪些摄像头",
+      "expected": [
+        {"name": "list_devices", "arguments": {}},
+        {"name": "list_events", "arguments": {"event_type": "DEVICE_OFFLINE", "device_id": "CAM-03"}}
+      ],
+      "source": {"file": "QueryScene-level-1-1.jsonl", "id": 0, "original_api": "QueryScene", "original_expected": "[QueryScene(name='Morning Routine')]"}
+    },
+    {
+      "id": "apibank-14",
+      "query": "列一下夜间巡查场景里的所有设备",
+      "expected": [
+        {"name": "list_devices", "arguments": {}},
+        {"name": "list_events", "arguments": {"event_type": "DEVICE_OFFLINE", "device_id": "CAM-03"}}
+      ],
+      "source": {"file": "QueryScene-level-1-3.jsonl", "id": 0, "original_api": "QueryScene", "original_expected": "[QueryScene(name='Morning Routine')]"}
+    },
+    {
+      "id": "apibank-15",
+      "query": "盘点整个棚区的摄像头和边缘节点",
+      "expected": [
+        {"name": "list_devices", "arguments": {}},
+        {"name": "list_events", "arguments": {"event_type": "DEVICE_OFFLINE", "device_id": "CAM-03"}}
+      ],
+      "source": {"file": "QueryScene-level-1-5.jsonl", "id": 0, "original_api": "QueryScene", "original_expected": "[QueryScene(name='Morning Routine')]"}
+    },
+    {
+      "id": "apibank-16",
+      "query": "查一下摄像头 CAM-03 六点半的离线告警",
+      "expected": [
+        {"name": "list_devices", "arguments": {}},
+        {"name": "list_events", "arguments": {"event_type": "DEVICE_OFFLINE", "device_id": "CAM-03"}}
+      ],
+      "source": {"file": "QueryAlarm-level-1-1.jsonl", "id": 2, "original_api": "QueryAlarm", "original_expected": "[QueryAlarm(token='o8i7u6y5t4r3e2w1q0', time='2023-03-20 06:30:00')]"}
+    },
+    {
+      "id": "apibank-17",
+      "query": "查一下繁育例会安排对应的工单",
+      "expected": [
+        {"name": "list_work_orders", "arguments": {"type": "BREEDING_REVIEW"}}
+      ],
+      "source": {"file": "QueryMeeting-level-1-1.jsonl", "id": 2, "original_api": "QueryMeeting", "original_expected": "[QueryMeeting(token='o9i8u7y6t5r4e3w2q1', meeting_topic='Design Team Meeting', ...)]"}
+    },
+    {
+      "id": "apibank-18",
+      "query": "周例会改期了，看看有没有相关工单",
+      "expected": [
+        {"name": "list_work_orders", "arguments": {}}
+      ],
+      "source": {"file": "GetMeeting-level-1-2.jsonl", "id": 2, "original_api": "QueryMeeting", "original_expected": "[QueryMeeting(token='a9s8d7f6g5h4j3k2l1', meeting_topic='Sales Meeting', ...)]"}
+    },
+    {
+      "id": "apibank-19",
+      "query": "给 COW-0063 创建一个 12 月 15 日的复诊提醒工单",
+      "expected": [
+        {"name": "create_work_order", "arguments": {"type": "VET_CHECK", "cow_id": "COW-0063", "source_event_id": "E-100", "priority": "HIGH", "description": "依据 E-100 对 COW-0063 做兽医检查"}}
+      ],
+      "source": {"file": "AddAgenda-AddMeeting-GetUserToken-level-2-4.jsonl", "id": 1, "original_api": "AddAgenda", "original_expected": "[AddAgenda(token='a9s8d7f6g5h4j3k2l1', content='Meeting with clients at ABC company', time='2023-12-15 14:00:00', location='ABC company')]"}
+    },
+    {
+      "id": "apibank-20",
+      "query": "新建日程：9 月 21 日给 COW-0064 复查，开工单提醒我",
+      "expected": [
+        {"name": "create_work_order", "arguments": {"type": "VET_CHECK", "cow_id": "COW-0064", "source_event_id": "E-100", "priority": "HIGH", "description": "依据 E-100 对 COW-0064 做兽医检查"}}
+      ],
+      "source": {"file": "AddAgenda-level-1-2.jsonl", "id": 2, "original_api": "AddAgenda", "original_expected": "[AddAgenda(token='z9x8c7v6b5n4m3q2w1', content='Meeting with John', time='2023-09-21 15:00:00', location='cafeteria')]"}
+    },
+    {
+      "id": "apibank-21",
+      "query": "COW-0065 有乏力症状，先排查 LAMENESS",
+      "expected": [
+        {"name": "list_events", "arguments": {"event_type": "LAMENESS", "cow_id": "COW-0065"}},
+        {"name": "query_cow_profile", "arguments": {"cow_id": "COW-0065"}},
+        {"name": "query_cow_timeline", "arguments": {"cow_id": "COW-0065"}}
+      ],
+      "source": {"file": "SymptomSearch-AppointmentRegistration-level-2-1.jsonl", "id": 0, "original_api": "SymptomSearch", "original_expected": "[SymptomSearch(symptom='fatigue')]"}
+    },
+    {
+      "id": "apibank-22",
+      "query": "COW-0066 反刍减少，查一下跛行症状证据",
+      "expected": [
+        {"name": "list_events", "arguments": {"event_type": "LAMENESS", "cow_id": "COW-0066"}},
+        {"name": "query_cow_profile", "arguments": {"cow_id": "COW-0066"}},
+        {"name": "query_cow_timeline", "arguments": {"cow_id": "COW-0066"}}
+      ],
+      "source": {"file": "QueryHealthData-CancelRegistration-SymptomSearch-level-2-1.jsonl", "id": 4, "original_api": "SymptomSearch", "original_expected": "[SymptomSearch(symptom='nausea')]"}
+    },
+    {
+      "id": "apibank-23",
+      "query": "COW-0067 疑似发情，按 MOUNTING 复核取数",
+      "expected": [
+        {"name": "query_cow_profile", "arguments": {"cow_id": "COW-0067"}},
+        {"name": "list_events", "arguments": {"event_type": "MOUNTING", "cow_id": "COW-0067"}},
+        {"name": "query_cow_timeline", "arguments": {"cow_id": "COW-0067"}}
+      ],
+      "source": {"file": "EmergencyKnowledge-ModifyRegistration-RecordHealthData-level-2-3.jsonl", "id": 0, "original_api": "EmergencyKnowledge", "original_expected": "[EmergencyKnowledge(symptom='shortness of breath')]"}
+    },
+    {
+      "id": "apibank-24",
+      "query": "COW-0068 精神萎靡，查一下有没有爬跨记录",
+      "expected": [
+        {"name": "query_cow_profile", "arguments": {"cow_id": "COW-0068"}},
+        {"name": "list_events", "arguments": {"event_type": "MOUNTING", "cow_id": "COW-0068"}},
+        {"name": "query_cow_timeline", "arguments": {"cow_id": "COW-0068"}}
+      ],
+      "source": {"file": "ModifyRegistration-EmergencyKnowledge-level-2-1.jsonl", "id": 2, "original_api": "EmergencyKnowledge", "original_expected": "[EmergencyKnowledge(symptom='fatigue')]"}
+    },
+    {
+      "id": "apibank-25",
+      "query": "录入体况数据前，先拉取 COW-0069 的时间线记录",
+      "expected": [
+        {"name": "query_cow_timeline", "arguments": {"cow_id": "COW-0069"}}
+      ],
+      "source": {"file": "EmergencyKnowledge-ModifyRegistration-RecordHealthData-level-2-3.jsonl", "id": 4, "original_api": "RecordHealthData", "original_expected": "[RecordHealthData(user_id='12345', time='2023-10-13 09:30:00', health_data='[...]')]"}
+    },
+    {
+      "id": "apibank-26",
+      "query": "录入血压体况前，核对 COW-0070 的档案资料",
+      "expected": [
+        {"name": "query_cow_profile", "arguments": {"cow_id": "COW-0070"}}
+      ],
+      "source": {"file": "CancelRegistration-RecordHealthData-QueryRegistration-level-2-1.jsonl", "id": 2, "original_api": "RecordHealthData", "original_expected": "[RecordHealthData(user_id='12345', time='2023-08-06 09:00:00', health_data='[...]')]"}
+    }
+  ]
+}

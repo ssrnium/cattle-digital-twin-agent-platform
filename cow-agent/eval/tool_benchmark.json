@@ -1,0 +1,100 @@
+[
+  {
+    "id": "mounting-tools-01",
+    "query": "复核 COW-0042 的 MOUNTING 事件",
+    "expected": [
+      {"name": "query_cow_profile", "arguments": {"cow_id": "COW-0042"}},
+      {"name": "list_events", "arguments": {"event_type": "MOUNTING", "cow_id": "COW-0042"}},
+      {"name": "query_cow_timeline", "arguments": {"cow_id": "COW-0042"}}
+    ]
+  },
+  {
+    "id": "lameness-tools-01",
+    "query": "排查 COW-0042 的 LAMENESS",
+    "expected": [
+      {"name": "list_events", "arguments": {"event_type": "LAMENESS", "cow_id": "COW-0042"}},
+      {"name": "query_cow_profile", "arguments": {"cow_id": "COW-0042"}},
+      {"name": "query_cow_timeline", "arguments": {"cow_id": "COW-0042"}}
+    ]
+  },
+  {
+    "id": "device-offline-tools-01",
+    "query": "排查设备 CAM-03 的 DEVICE_OFFLINE",
+    "expected": [
+      {"name": "list_devices", "arguments": {}},
+      {"name": "list_events", "arguments": {"event_type": "DEVICE_OFFLINE", "device_id": "CAM-03"}}
+    ]
+  },
+  {
+    "id": "write-approval-tools-01",
+    "query": "依据 E-100 给 COW-0042 创建兽医检查工单",
+    "expected": [
+      {"name": "create_work_order", "arguments": {"type": "VET_CHECK", "cow_id": "COW-0042", "source_event_id": "E-100", "priority": "HIGH", "description": "依据 E-100 对 COW-0042 做兽医检查"}}
+    ]
+  },
+  {
+    "id": "profile-tools-01",
+    "query": "查一下 COW-0017 的档案和当前健康状态",
+    "category": "single_tool_cow_id_format",
+    "expected": [
+      {"name": "query_cow_profile", "arguments": {"cow_id": "COW-0017"}}
+    ]
+  },
+  {
+    "id": "timeline-tools-01",
+    "query": "拉取 COW-0017 最近的时间线记录",
+    "category": "single_tool_optional_arg_omitted",
+    "expected": [
+      {"name": "query_cow_timeline", "arguments": {"cow_id": "COW-0017"}}
+    ]
+  },
+  {
+    "id": "twin-tools-01",
+    "query": "看看全棚奶牛现在的数字孪生状态",
+    "category": "single_tool_no_args",
+    "expected": [
+      {"name": "get_twin_states", "arguments": {}}
+    ]
+  },
+  {
+    "id": "twin-profile-tools-01",
+    "query": "先看全棚孪生状态，再对照 COW-0042 的档案",
+    "category": "multi_step_order_sensitive",
+    "expected": [
+      {"name": "get_twin_states", "arguments": {}},
+      {"name": "query_cow_profile", "arguments": {"cow_id": "COW-0042"}}
+    ]
+  },
+  {
+    "id": "events-all-tools-01",
+    "query": "汇总今天所有牛的 MOUNTING 事件",
+    "category": "optional_filter_omitted",
+    "expected": [
+      {"name": "list_events", "arguments": {"event_type": "MOUNTING"}}
+    ]
+  },
+  {
+    "id": "workorder-list-tools-01",
+    "query": "列一下当前处于 NEW 状态的工单",
+    "category": "single_tool_state_filter",
+    "expected": [
+      {"name": "list_work_orders", "arguments": {"state": "NEW"}}
+    ]
+  },
+  {
+    "id": "workorder-filter-tools-01",
+    "query": "看看有没有待复核的兽医检查工单",
+    "category": "single_tool_multi_filter",
+    "expected": [
+      {"name": "list_work_orders", "arguments": {"state": "PENDING_REVIEW", "type": "VET_CHECK"}}
+    ]
+  },
+  {
+    "id": "repair-order-tools-01",
+    "query": "CAM-03 恢复后补传迟迟没归零，给设备组开一张工单，类型 DEVICE_REPAIR",
+    "category": "write_tool_device_optional_args",
+    "expected": [
+      {"name": "create_work_order", "arguments": {"type": "DEVICE_REPAIR", "device_id": "CAM-03", "priority": "NORMAL", "description": "设备 CAM-03 需现场检修"}}
+    ]
+  }
+]

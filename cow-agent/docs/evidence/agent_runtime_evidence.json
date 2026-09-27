@@ -1,0 +1,1799 @@
+{
+  "skill_eval": {
+    "dataset": "eval/skill_benchmark.json",
+    "count": 16,
+    "positive_count": 14,
+    "negative_count": 2,
+    "metrics": {
+      "skill_hit_rate": 1.0,
+      "skill_mrr": 1.0,
+      "ood_rejection_rate": 1.0
+    },
+    "cases": [
+      {
+        "id": "mounting-review-01",
+        "expected_skill": "mounting-review",
+        "negative": false,
+        "top_skill": "mounting-review",
+        "top_score": 1.0,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "mounting-review",
+            "score": 1.0
+          },
+          {
+            "name": "lameness-check",
+            "score": 0.1324
+          },
+          {
+            "name": "device-offline",
+            "score": 0.0986
+          }
+        ]
+      },
+      {
+        "id": "mounting-review-02",
+        "expected_skill": "mounting-review",
+        "negative": false,
+        "top_skill": "mounting-review",
+        "top_score": 0.1116,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "mounting-review",
+            "score": 0.1116
+          }
+        ]
+      },
+      {
+        "id": "mounting-review-03",
+        "expected_skill": "mounting-review",
+        "negative": false,
+        "top_skill": "mounting-review",
+        "top_score": 0.3637,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "mounting-review",
+            "score": 0.3637
+          },
+          {
+            "name": "lameness-check",
+            "score": 0.2809
+          },
+          {
+            "name": "report-style",
+            "score": 0.077
+          }
+        ]
+      },
+      {
+        "id": "mounting-review-04",
+        "expected_skill": "mounting-review",
+        "negative": false,
+        "top_skill": "mounting-review",
+        "top_score": 0.6748,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "mounting-review",
+            "score": 0.6748
+          },
+          {
+            "name": "lameness-check",
+            "score": 0.1596
+          },
+          {
+            "name": "device-offline",
+            "score": 0.1103
+          }
+        ]
+      },
+      {
+        "id": "lameness-check-01",
+        "expected_skill": "lameness-check",
+        "negative": false,
+        "top_skill": "lameness-check",
+        "top_score": 0.9107,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "lameness-check",
+            "score": 0.9107
+          },
+          {
+            "name": "device-offline",
+            "score": 0.2169
+          },
+          {
+            "name": "report-style",
+            "score": 0.0885
+          }
+        ]
+      },
+      {
+        "id": "lameness-check-02",
+        "expected_skill": "lameness-check",
+        "negative": false,
+        "top_skill": "lameness-check",
+        "top_score": 0.2215,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "lameness-check",
+            "score": 0.2215
+          },
+          {
+            "name": "report-style",
+            "score": 0.1446
+          },
+          {
+            "name": "mounting-review",
+            "score": 0.0932
+          }
+        ]
+      },
+      {
+        "id": "lameness-check-03",
+        "expected_skill": "lameness-check",
+        "negative": false,
+        "top_skill": "lameness-check",
+        "top_score": 0.6171,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "lameness-check",
+            "score": 0.6171
+          },
+          {
+            "name": "mounting-review",
+            "score": 0.2029
+          },
+          {
+            "name": "device-offline",
+            "score": 0.1391
+          }
+        ]
+      },
+      {
+        "id": "device-offline-01",
+        "expected_skill": "device-offline",
+        "negative": false,
+        "top_skill": "device-offline",
+        "top_score": 0.8202,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "device-offline",
+            "score": 0.8202
+          },
+          {
+            "name": "lameness-check",
+            "score": 0.0793
+          }
+        ]
+      },
+      {
+        "id": "device-offline-02",
+        "expected_skill": "device-offline",
+        "negative": false,
+        "top_skill": "device-offline",
+        "top_score": 0.3149,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "device-offline",
+            "score": 0.3149
+          },
+          {
+            "name": "report-style",
+            "score": 0.0466
+          },
+          {
+            "name": "lameness-check",
+            "score": 0.0045
+          }
+        ]
+      },
+      {
+        "id": "device-offline-03",
+        "expected_skill": "device-offline",
+        "negative": false,
+        "top_skill": "device-offline",
+        "top_score": 0.7489,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "device-offline",
+            "score": 0.7489
+          },
+          {
+            "name": "report-style",
+            "score": 0.056
+          },
+          {
+            "name": "lameness-check",
+            "score": 0.0203
+          }
+        ]
+      },
+      {
+        "id": "device-offline-04",
+        "expected_skill": "device-offline",
+        "negative": false,
+        "top_skill": "device-offline",
+        "top_score": 0.6417,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "device-offline",
+            "score": 0.6417
+          },
+          {
+            "name": "mounting-review",
+            "score": 0.0543
+          },
+          {
+            "name": "report-style",
+            "score": 0.0528
+          }
+        ]
+      },
+      {
+        "id": "report-style-01",
+        "expected_skill": "report-style",
+        "negative": false,
+        "top_skill": "report-style",
+        "top_score": 0.6488,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "report-style",
+            "score": 0.6488
+          },
+          {
+            "name": "lameness-check",
+            "score": 0.09
+          },
+          {
+            "name": "device-offline",
+            "score": 0.0376
+          }
+        ]
+      },
+      {
+        "id": "report-style-02",
+        "expected_skill": "report-style",
+        "negative": false,
+        "top_skill": "report-style",
+        "top_score": 0.227,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "report-style",
+            "score": 0.227
+          },
+          {
+            "name": "mounting-review",
+            "score": 0.0838
+          },
+          {
+            "name": "lameness-check",
+            "score": 0.0745
+          }
+        ]
+      },
+      {
+        "id": "report-style-03",
+        "expected_skill": "report-style",
+        "negative": false,
+        "top_skill": "report-style",
+        "top_score": 0.5323,
+        "rank": 1,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "report-style",
+            "score": 0.5323
+          },
+          {
+            "name": "lameness-check",
+            "score": 0.2036
+          },
+          {
+            "name": "device-offline",
+            "score": 0.1883
+          }
+        ]
+      },
+      {
+        "id": "ood-negative-01",
+        "expected_skill": null,
+        "negative": true,
+        "top_skill": "",
+        "top_score": 0.0,
+        "rank": 0,
+        "hit": true,
+        "candidates": []
+      },
+      {
+        "id": "ood-negative-02",
+        "expected_skill": null,
+        "negative": true,
+        "top_skill": "report-style",
+        "top_score": 0.0085,
+        "rank": 0,
+        "hit": true,
+        "candidates": [
+          {
+            "name": "report-style",
+            "score": 0.0085
+          },
+          {
+            "name": "lameness-check",
+            "score": 0.0083
+          },
+          {
+            "name": "device-offline",
+            "score": 0.0082
+          }
+        ]
+      }
+    ]
+  },
+  "tool_eval": {
+    "dataset": "eval/tool_benchmark.json",
+    "count": 12,
+    "metrics": {
+      "tool_selection_accuracy": 1.0,
+      "argument_validity": 1.0,
+      "sequence_exact_rate": 1.0
+    },
+    "cases": [
+      {
+        "id": "mounting-tools-01",
+        "expected": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0042"
+            }
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "MOUNTING",
+              "cow_id": "COW-0042"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0042"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0042"
+            }
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "MOUNTING",
+              "cow_id": "COW-0042"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0042"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "lameness-tools-01",
+        "expected": [
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "LAMENESS",
+              "cow_id": "COW-0042"
+            }
+          },
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0042"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0042"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "LAMENESS",
+              "cow_id": "COW-0042"
+            }
+          },
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0042"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0042"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "device-offline-tools-01",
+        "expected": [
+          {
+            "name": "list_devices",
+            "arguments": {}
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "DEVICE_OFFLINE",
+              "device_id": "CAM-03"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_devices",
+            "arguments": {}
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "DEVICE_OFFLINE",
+              "device_id": "CAM-03"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "write-approval-tools-01",
+        "expected": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0042",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0042 做兽医检查"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0042",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0042 做兽医检查"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "profile-tools-01",
+        "expected": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0017"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0017"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "timeline-tools-01",
+        "expected": [
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0017"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0017"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "twin-tools-01",
+        "expected": [
+          {
+            "name": "get_twin_states",
+            "arguments": {}
+          }
+        ],
+        "observed": [
+          {
+            "name": "get_twin_states",
+            "arguments": {}
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "twin-profile-tools-01",
+        "expected": [
+          {
+            "name": "get_twin_states",
+            "arguments": {}
+          },
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0042"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "get_twin_states",
+            "arguments": {}
+          },
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0042"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "events-all-tools-01",
+        "expected": [
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "MOUNTING"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "MOUNTING"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "workorder-list-tools-01",
+        "expected": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "NEW"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "NEW"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "workorder-filter-tools-01",
+        "expected": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "PENDING_REVIEW",
+              "type": "VET_CHECK"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "PENDING_REVIEW",
+              "type": "VET_CHECK"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "repair-order-tools-01",
+        "expected": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "DEVICE_REPAIR",
+              "device_id": "CAM-03",
+              "priority": "NORMAL",
+              "description": "设备 CAM-03 需现场检修"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "DEVICE_REPAIR",
+              "device_id": "CAM-03",
+              "priority": "NORMAL",
+              "description": "设备 CAM-03 需现场检修"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      }
+    ]
+  },
+  "tool_eval_apibank_subset": {
+    "dataset": "eval/tool_benchmark_apibank_subset.json",
+    "count": 26,
+    "metrics": {
+      "tool_selection_accuracy": 1.0,
+      "argument_validity": 1.0,
+      "sequence_exact_rate": 1.0
+    },
+    "cases": [
+      {
+        "id": "apibank-01",
+        "expected": [
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0056"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0056"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-02",
+        "expected": [
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0057"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0057"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-03",
+        "expected": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0058"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0058"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-04",
+        "expected": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "type": "VET_CHECK"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "type": "VET_CHECK"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-05",
+        "expected": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "type": "VET_CHECK"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "type": "VET_CHECK"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-06",
+        "expected": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0060",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0060 做兽医检查"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0060",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0060 做兽医检查"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-07",
+        "expected": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0061",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0061 做兽医检查"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0061",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0061 做兽医检查"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-08",
+        "expected": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0062",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0062 做兽医检查"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0062",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0062 做兽医检查"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-09",
+        "expected": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "PROCESSING"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "PROCESSING"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-10",
+        "expected": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "DISPATCHED"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "DISPATCHED"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-11",
+        "expected": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "NEW"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "NEW"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-12",
+        "expected": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "CLOSED"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "state": "CLOSED"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-13",
+        "expected": [
+          {
+            "name": "list_devices",
+            "arguments": {}
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "DEVICE_OFFLINE",
+              "device_id": "CAM-03"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_devices",
+            "arguments": {}
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "DEVICE_OFFLINE",
+              "device_id": "CAM-03"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-14",
+        "expected": [
+          {
+            "name": "list_devices",
+            "arguments": {}
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "DEVICE_OFFLINE",
+              "device_id": "CAM-03"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_devices",
+            "arguments": {}
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "DEVICE_OFFLINE",
+              "device_id": "CAM-03"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-15",
+        "expected": [
+          {
+            "name": "list_devices",
+            "arguments": {}
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "DEVICE_OFFLINE",
+              "device_id": "CAM-03"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_devices",
+            "arguments": {}
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "DEVICE_OFFLINE",
+              "device_id": "CAM-03"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-16",
+        "expected": [
+          {
+            "name": "list_devices",
+            "arguments": {}
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "DEVICE_OFFLINE",
+              "device_id": "CAM-03"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_devices",
+            "arguments": {}
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "DEVICE_OFFLINE",
+              "device_id": "CAM-03"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-17",
+        "expected": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "type": "BREEDING_REVIEW"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_work_orders",
+            "arguments": {
+              "type": "BREEDING_REVIEW"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-18",
+        "expected": [
+          {
+            "name": "list_work_orders",
+            "arguments": {}
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_work_orders",
+            "arguments": {}
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-19",
+        "expected": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0063",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0063 做兽医检查"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0063",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0063 做兽医检查"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-20",
+        "expected": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0064",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0064 做兽医检查"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "create_work_order",
+            "arguments": {
+              "type": "VET_CHECK",
+              "cow_id": "COW-0064",
+              "source_event_id": "E-100",
+              "priority": "HIGH",
+              "description": "依据 E-100 对 COW-0064 做兽医检查"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-21",
+        "expected": [
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "LAMENESS",
+              "cow_id": "COW-0065"
+            }
+          },
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0065"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0065"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "LAMENESS",
+              "cow_id": "COW-0065"
+            }
+          },
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0065"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0065"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-22",
+        "expected": [
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "LAMENESS",
+              "cow_id": "COW-0066"
+            }
+          },
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0066"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0066"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "LAMENESS",
+              "cow_id": "COW-0066"
+            }
+          },
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0066"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0066"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-23",
+        "expected": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0067"
+            }
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "MOUNTING",
+              "cow_id": "COW-0067"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0067"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0067"
+            }
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "MOUNTING",
+              "cow_id": "COW-0067"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0067"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-24",
+        "expected": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0068"
+            }
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "MOUNTING",
+              "cow_id": "COW-0068"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0068"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0068"
+            }
+          },
+          {
+            "name": "list_events",
+            "arguments": {
+              "event_type": "MOUNTING",
+              "cow_id": "COW-0068"
+            }
+          },
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0068"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          },
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-25",
+        "expected": [
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0069"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "query_cow_timeline",
+            "arguments": {
+              "cow_id": "COW-0069"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      },
+      {
+        "id": "apibank-26",
+        "expected": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0070"
+            }
+          }
+        ],
+        "observed": [
+          {
+            "name": "query_cow_profile",
+            "arguments": {
+              "cow_id": "COW-0070"
+            }
+          }
+        ],
+        "argument_validation": [
+          {
+            "valid": true,
+            "errors": []
+          }
+        ],
+        "sequence_exact": true
+      }
+    ],
+    "source": {
+      "source": "API-Bank (https://github.com/AlibabaResearch/DAMO-ConvAI/tree/main/api-bank)，本地母版拷贝：奶牛数字孪生_AI全栈企业级/技术架构母版/.../BearCode/data/API-Bank/test-data/level-1-api.json（399 条，对话→单 API 调用）",
+      "selection": "按 expected_output 中的 API 名人工选取意图可映射到 7 个领域工具的样本 26 条；跳过 GetUserToken 鉴权样本与银行/账户/计算器等无领域对应的 API",
+      "conversion": "保留原样本的单调用意图结构（查询/筛选/预约/取消/改期/症状），将用户话语改写为奶牛领域中文 query，expected 按 eval/tool_benchmark.json 同一 schema 手工标注为领域工具调用；母版只读，未复制任何原始大文件",
+      "mapping": "QueryHealthData→query_cow_timeline/query_cow_profile；QueryRegistration/ModifyRegistration/CancelRegistration/QueryMeeting→list_work_orders；AppointmentRegistration/AddAgenda→create_work_order；QueryScene/QueryAlarm→list_devices+list_events(DEVICE_OFFLINE)；SymptomSearch/EmergencyKnowledge→LAMENESS/MOUNTING 三步排查序列；RecordHealthData→query_cow_timeline/query_cow_profile"
+    }
+  },
+  "context_compression": {
+    "method": "same fixed task transcripts, same model label, deterministic session_memory fallback folding, offline token estimate",
+    "count": 4,
+    "metrics": {
+      "average_total_tokens_before": 5388.25,
+      "average_total_tokens_after": 1742.25,
+      "average_reduction_ratio": 0.676657541873521
+    },
+    "tasks": [
+      {
+        "task_id": "cow-investigation",
+        "model": "deepseek-flash",
+        "input_tokens_before": 5365,
+        "input_tokens_after": 1718,
+        "output_tokens_before": 25,
+        "output_tokens_after": 25,
+        "total_tokens_before": 5390,
+        "total_tokens_after": 1743,
+        "reduction_ratio": 0.6766233766233767
+      },
+      {
+        "task_id": "device-recovery",
+        "model": "deepseek-flash",
+        "input_tokens_before": 5363,
+        "input_tokens_after": 1717,
+        "output_tokens_before": 25,
+        "output_tokens_after": 25,
+        "total_tokens_before": 5388,
+        "total_tokens_after": 1742,
+        "reduction_ratio": 0.6766889383815887
+      },
+      {
+        "task_id": "breeding-review",
+        "model": "deepseek-flash",
+        "input_tokens_before": 5363,
+        "input_tokens_after": 1716,
+        "output_tokens_before": 25,
+        "output_tokens_after": 25,
+        "total_tokens_before": 5388,
+        "total_tokens_after": 1741,
+        "reduction_ratio": 0.6768745360059392
+      },
+      {
+        "task_id": "daily-report",
+        "model": "deepseek-flash",
+        "input_tokens_before": 5362,
+        "input_tokens_after": 1718,
+        "output_tokens_before": 25,
+        "output_tokens_after": 25,
+        "total_tokens_before": 5387,
+        "total_tokens_after": 1743,
+        "reduction_ratio": 0.6764432894004084
+      }
+    ]
+  },
+  "mcp": {
+    "config_dir": "D:\\研究生\\企业级项目的构建\\cow-digital-twin-platform\\cow-agent\\agent-home",
+    "servers": [
+      "ranch-demo"
+    ],
+    "discovered_tools": [
+      "mcp__ranch-demo__get_ranch_snapshot",
+      "mcp__ranch-demo__create_ranch_note",
+      "mcp__ranch-demo__flaky_health_check"
+    ],
+    "discovered_count": 3,
+    "read_call": {
+      "tool": "mcp__ranch-demo__get_ranch_snapshot",
+      "result": "{\"farm_id\": \"north-star\", \"online_devices\": 12, \"open_events\": 3}"
+    },
+    "write_permission": {
+      "action": "confirm",
+      "message": "MCP write tool requires confirmation: mcp__ranch-demo__create_ranch_note"
+    },
+    "dont_ask_permission": {
+      "action": "deny",
+      "message": "Blocked external side effect: mcp__ranch-demo__create_ranch_note"
+    },
+    "write_call_after_approval": {
+      "tool": "mcp__ranch-demo__create_ranch_note",
+      "result": "note-created:operator review"
+    },
+    "failure_recovered": true,
+    "failure": "MCP error -32001: fixture health check failed"
+  },
+  "generated_at": "2026-09-27T06:52:16.443866+00:00",
+  "runtime": {
+    "project": "D:\\研究生\\企业级项目的构建\\cow-digital-twin-platform\\cow-agent",
+    "agent_home": "D:\\研究生\\企业级项目的构建\\cow-digital-twin-platform\\cow-agent\\agent-home",
+    "offline": true
+  }
+}
