@@ -8,6 +8,9 @@
   但会多调 LLM）；
 - 扩展 check_permission：自定义领域写工具（create_work_order）默认不进 confirm
   流程，这里补上——走 confirm_fn park 到前端审批。
+- 历史完整性守卫（repair_dangling_tool_calls）：发送前扫描 _openai_messages，
+  为悬空 tool_calls（工具结果未配对落盘，DeepSeek 会对整个会话持续 400）
+  注入合成错误 tool 消息补齐配对；只修不剥，WARNING 记日志，正常历史零改动。
 """
 from __future__ import annotations
 
@@ -26,7 +29,51 @@ logger = logging.getLogger("cow-agent.patch")
 # 领域写工具：必须走前端确认（见 app.cow_tools.WRITE_TOOLS，此处硬编码避免循环依赖）
 COW_WRITE_TOOLS = {"create_work_order"}
 
+# 历史完整性守卫注入的合成 tool 消息内容（只修不剥，现场可审计）
+REPAIR_NOTE = "[runtime] tool result missing: repaired by history integrity guard"
+
 _applied = False
+
+
+def repair_dangling_tool_calls(messages: list, *, session_id: str = "") -> list[str]:
+    """发送前历史扫描：为悬空 tool_calls 注入合成错误 tool 消息，使配对完整。
+
+    背景：某轮异常中断（如工具结果未落盘）会在历史里留下带 tool_calls 的 assistant
+    消息却缺少对应 tool 结果，DeepSeek 下一轮起对该会话一律 400
+    （tool_calls must be followed by tool messages），会话被永久毒化。
+    本守卫只修不剥：不删除任何既有消息，只在缺失处插入 REPAIR_NOTE  tool 消息，
+    返回被修复的 tool_call_id 列表（正常历史返回空、零改动）。
+    """
+    repaired: list[str] = []
+    i = 0
+    while i < len(messages):
+        message = messages[i]
+        tool_calls = message.get("tool_calls") or [] if isinstance(message, dict) else []
+        expected = [str(tc.get("id")) for tc in tool_calls if isinstance(tc, dict) and tc.get("id")]
+        if not expected:
+            i += 1
+            continue
+        answered = set()
+        j = i + 1
+        while j < len(messages) and isinstance(messages[j], dict) and messages[j].get("role") == "tool":
+            answered.add(messages[j].get("tool_call_id"))
+            j += 1
+        for tool_call_id in expected:
+            if tool_call_id not in answered:
+                messages.insert(j, {
+                    "role": "tool",
+                    "tool_call_id": tool_call_id,
+                    "content": REPAIR_NOTE,
+                })
+                j += 1
+                repaired.append(tool_call_id)
+        i = j
+    if repaired:
+        logger.warning(
+            "history integrity guard: repaired %d dangling tool_calls (session=%s, history=%d msgs, ids=%s)",
+            len(repaired), session_id or "unknown", len(messages), repaired,
+        )
+    return repaired
 
 
 def _noop(*args, **kwargs):
@@ -104,6 +151,13 @@ def apply_patches() -> None:
             pass
 
     async def sanitized_call_stream(self):
+        # 历史完整性守卫（先于 id 重写）：悬空 tool_calls 会让 DeepSeek 对整个会话 400，
+        # 注入合成错误 tool 消息补齐配对后再走成对重写，正常历史零改动。
+        try:
+            repair_dangling_tool_calls(
+                self._openai_messages, session_id=str(getattr(self, "session_id", "")))
+        except Exception:
+            pass
         sanitize_history_ids(self)
         resp = await original_call_stream(self)
         try:

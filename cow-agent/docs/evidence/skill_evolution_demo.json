@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-27T08:00:42.119554+00:00",
+  "generated_at": "2026-09-27T08:08:09.517113+00:00",
   "offline": true,
   "skill": "lameness-check",
   "mechanism": "app/feedback.py::FeedbackLedger + bear/agents/skill_evolution.py （evolve 前快照 → rollback 恢复最近快照 → append-only JSONL 审计）",
@@ -9,7 +9,7 @@
     {
       "step": "merge#1",
       "ok": true,
-      "candidate_id": "c177d1216cc9",
+      "candidate_id": "d978c36717b2",
       "version_before": "",
       "version_after": "0.1.1",
       "snapshot_count": 1,
@@ -19,7 +19,7 @@
     {
       "step": "merge#2",
       "ok": true,
-      "candidate_id": "986a35898048",
+      "candidate_id": "1fe0730ad641",
       "version_before": "0.1.1",
       "version_after": "0.1.2",
       "snapshot_count": 2,
@@ -43,7 +43,7 @@
     {
       "step": "discard",
       "ok": true,
-      "candidate_id": "4febea945313",
+      "candidate_id": "5ed8322ae7f9",
       "skill_file_untouched": true
     },
     {
@@ -61,9 +61,9 @@
       ],
       "times_monotonic": true,
       "decision_status": {
-        "c177d1216cc9": "merged",
-        "986a35898048": "merged",
-        "4febea945313": "discarded"
+        "d978c36717b2": "merged",
+        "1fe0730ad641": "merged",
+        "5ed8322ae7f9": "discarded"
       },
       "ledger_file": ".bear\\skill-evolution\\feedback_candidates.jsonl"
     },

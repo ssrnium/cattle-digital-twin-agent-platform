@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-27T08:00:41.162644+00:00",
+  "generated_at": "2026-09-27T08:08:08.542985+00:00",
   "offline": true,
   "deterministic": "LLM 为脚本化 FakeOpenAIClient，cow-admin 为罐头 MockTransport，可重复运行结果一致",
   "scenario": {

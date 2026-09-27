@@ -1790,7 +1790,7 @@
     "failure_recovered": true,
     "failure": "MCP error -32001: fixture health check failed"
   },
-  "generated_at": "2026-09-27T07:57:42.308096+00:00",
+  "generated_at": "2026-09-27T08:08:07.559324+00:00",
   "runtime": {
     "project": "D:\\研究生\\企业级项目的构建\\cow-digital-twin-platform\\cow-agent",
     "agent_home": "D:\\研究生\\企业级项目的构建\\cow-digital-twin-platform\\cow-agent\\agent-home",

@@ -27,7 +27,8 @@ cd cow-agent
 | MCP | 1 个真实 stdio Server | 发现 / 读调用 / 审批写调用 / 失败恢复 | 3 工具 / 通过 / 通过 / 通过 |
 | 子 Agent 实战（cow-investigator） | 2 头异常牛 + 1 次建单 | 子 Agent 启动 / 白名单收窄 / 写意图父会话审批 | 通过（离线脚本回放） |
 | Skill 自进化端到端 | 2 merge + 2 rollback + 1 discard | 版本递增 / 快照恢复 / 审计链有序 | 7 步全过 |
-| 回归测试 | 35 项 | pytest | 35 passed |
+| 历史完整性守卫 | 3 个场景（含端到端） | 悬空补齐 / 只修不剥 / 正常历史零改动 / 幂等 | 通过 |
+| 回归测试 | 38 项 | pytest | 38 passed |
 
 ### Skill 评测
 
@@ -71,6 +72,14 @@ cd cow-agent
 
 `scripts/demo_skill_evolution.py` 在 `agent-home/.bear/skills` 的临时副本上重放完整生命周期（agent-home 整树指纹前后比对为零污染证据）：feedback 提交 → 候选 → merge（`lameness-check` 0.1.0→0.1.1→0.1.2，每次 merge 前快照写入 `history/*.jsonl` 且内容逐字节等于对应旧版本）→ rollback 恢复**最近一次**快照（回到 0.1.1 内容，而非最初版本）→ 重复 rollback 的边界行为（快照 append-only 不弹栈，幂等于同一快照，不会继续回退）→ discard 路径（skill 文件零改动、候选标记 discarded、不可重复决策）→ `feedback_candidates.jsonl` 审计链事件序列与时间单调性校验。每步结构化证据写入 `docs/evidence/skill_evolution_demo.json`，任一步失败脚本以非零码退出。
 
+### 历史完整性守卫
+
+**问题现象（线上实锤）**：真实模型评测（`scripts/run_live_model_eval.py`，DeepSeek 线上调用，经 admin 代理 chat）中，某轮异常（trace 出现 `skill`+`read_file`、回复为空）在历史里留下**悬空 tool_calls**——assistant 消息带 tool_calls 但缺少对应 tool 结果消息。下一轮起 DeepSeek 对该会话一律返回 400：`An assistant message with 'tool_calls' must be followed by tool messages responding to each 'tool_call_id'`，此后该会话所有轮次全部失败（会话毒化）。既有的 tool_call_id 成对重写（防 Duplicate tool_call_id）只处理 id 复用，不覆盖「结果缺失」这个配对完整性边界。
+
+**守卫语义**：`app/patch.py::repair_dangling_tool_calls` 挂在 `_call_openai_stream` 包装链路发送前（先于 id 重写）：扫描 `_openai_messages`，对每组 assistant.tool_calls 检查紧随其后 tool 消息块的配对，缺失处**只修不剥**地插入合成错误 tool 消息（内容 `[runtime] tool result missing: repaired by history integrity guard`，既有消息零删除零改动，现场可审计），并以 WARNING 记录 `repaired N dangling tool_calls (session=…, ids=[…])`。修复在历史落盘处生效，同一轮事故只修一次（幂等）；正常历史零改动、零日志。修复后再走既有成对 id 重写，合成消息一并获得全新配对 id，无行为回归。
+
+**复跑方式**：`pytest tests/test_history_integrity_guard.py`（3 例：部分缺失+整组悬空+跨 user 消息的场景保留与插入位置断言；健康历史/空 tool_calls 零改动；端到端毒化→修复→WARNING→第二轮幂等）。线上真实模型评测脚本 `scripts/run_live_model_eval.py` 需在服务器侧跑（cow-admin 8081 + cow-agent 8003 + 有效 LLM key），守卫上线后原毒化场景不再扩散到后续轮次。
+
 ## 证据文件
 
 - `app/evaluation.py`：固定样本评测（含域外负例判定）、工具 schema 校验、上下文压缩统计
@@ -80,5 +89,6 @@ cd cow-agent
 - `scripts/run_agent_evals.py`：一键运行并生成 JSON 报告
 - `scripts/demo_subagent_investigation.py`：cow-investigator 多头牛排查 + 建单审批演示（证据 `docs/evidence/subagent_investigation_demo.json`）
 - `scripts/demo_skill_evolution.py`：自进化 merge/rollback/discard 全生命周期演示（证据 `docs/evidence/skill_evolution_demo.json`）
-- `tests/test_mcp_runtime.py`、`tests/test_feedback_ledger.py`、`tests/test_evaluation.py`、`tests/test_subagent_permissions.py`、`tests/test_subagent_investigation.py`、`tests/test_skill_evolution_flow.py`：回归测试
+- `scripts/run_live_model_eval.py`：真实模型评测（DeepSeek 线上调用，服务器侧运行，与离线回放分开报告；会话毒化 bug 即由它发现）
+- `tests/test_mcp_runtime.py`、`tests/test_feedback_ledger.py`、`tests/test_evaluation.py`、`tests/test_subagent_permissions.py`、`tests/test_subagent_investigation.py`、`tests/test_skill_evolution_flow.py`、`tests/test_history_integrity_guard.py`：回归测试
 - `docs/evidence/agent_runtime_evidence.json`：本次运行的逐样本结果
