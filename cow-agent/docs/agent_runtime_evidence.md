@@ -7,8 +7,12 @@
 ```powershell
 cd cow-agent
 \.venv\Scripts\python.exe scripts\run_agent_evals.py
+\.venv\Scripts\python.exe scripts\demo_subagent_investigation.py
+\.venv\Scripts\python.exe scripts\demo_skill_evolution.py
 \.venv\Scripts\python.exe -m pytest -q tests
 ```
+
+两个 demo 脚本同样离线确定性：LLM 是脚本化回放客户端（`app/offline_fakes.py::FakeOpenAIClient`，不花真实 API 额度），cow-admin 是罐头 `MockTransport`，证据分别写入 `docs/evidence/subagent_investigation_demo.json` 与 `docs/evidence/skill_evolution_demo.json`。
 
 脚本读取固定样本 `eval/skill_benchmark.json`、`eval/tool_benchmark.json` 和公开基准改写子集 `eval/tool_benchmark_apibank_subset.json`，把 JSON 报告写到 `docs/evidence/agent_runtime_evidence.json`。MCP 配置位于 `agent-home/.mcp.json`，fixture 是同目录下的 `mcp_fixture.py`，通过 stdio JSON-RPC 作为独立子进程启动。
 
@@ -21,7 +25,9 @@ cd cow-agent
 | API-Bank 公开基准改写子集 | 26 个场景、38 次调用 | 工具选择 / 参数合法 / 序列精确 | 100% / 100% / 100% |
 | 上下文压缩 | 4 个固定任务 | 平均总 Token | 5,388.25 → 1,742.25，下降 67.67% |
 | MCP | 1 个真实 stdio Server | 发现 / 读调用 / 审批写调用 / 失败恢复 | 3 工具 / 通过 / 通过 / 通过 |
-| 回归测试 | 30 项 | pytest | 30 passed |
+| 子 Agent 实战（cow-investigator） | 2 头异常牛 + 1 次建单 | 子 Agent 启动 / 白名单收窄 / 写意图父会话审批 | 通过（离线脚本回放） |
+| Skill 自进化端到端 | 2 merge + 2 rollback + 1 discard | 版本递增 / 快照恢复 / 审计链有序 | 7 步全过 |
+| 回归测试 | 35 项 | pytest | 35 passed |
 
 ### Skill 评测
 
@@ -55,11 +61,24 @@ cd cow-agent
 
 子 Agent 和 fork Skill 现在继承父 Agent 的 `permission_mode` 与 `confirm_fn`。default 模式不再隐式升级成 `bypassPermissions`，所以写工具仍会回到同一个 session 的审批 Future。领域写操作继续由 `PENDING_ACTION` 和 `X-Action-Id` 下沉链路保护。
 
+### 子 Agent 实战：cow-investigator 多头牛排查
+
+领域场景「ZONE-B 最近异常的几头牛都什么情况」真正走通子 Agent 机制：主 Agent 先 `list_events` 圈定异常牛清单（COW-0042 爬跨 ×2、COW-0057 跛行），再经 agent 工具逐头启动 `cow-investigator` 子 Agent 排查，最后汇总报告。实现位置：`app/cow_agent.py::CowAgent._execute_agent_tool`——母版 launch 路径（`bear/agents/agent.py:1277`）只构造纯 Agent + 内置代码工具、无法路由领域工具，故按同一机制在 app 层特化：子代理是真实 `CowAgent.run_once` 独立循环，只挂 6 个只读领域工具（`create_work_order` 被排除，且不允许再递归 agent 工具），继承父会话 `permission_mode=default` 与 `confirm_fn`。agent 工具的 type 枚举在 app 层拷贝扩展（`cow_agent_tools()`），母版 `tool_definitions` 零改动。
+
+权限边界由测试直接证明而非口头声明：`tests/test_subagent_investigation.py` 中子 Agent 脚本尝试 `create_work_order` 时，确认请求 park 到**父会话同一个 confirm_fn**，用户拒绝后罐头后端 `state["work_orders"]` 为空——写操作从未到达后端；被拒意图连同参数以 `denied_tool_calls` 留在 trace 证据里。`run_once` 响应结构新增 `subagent_runs`（每个子 Agent 的 tools_granted / tool_trace / tokens / report / 权限字段），配合既有 `tool_trace` 可完整还原父子分工。演示脚本 `scripts/demo_subagent_investigation.py` 第二轮另演示建单审批通过路径：confirm_fn 批准后写工具才执行。
+
+### Skill 自进化端到端演示
+
+`scripts/demo_skill_evolution.py` 在 `agent-home/.bear/skills` 的临时副本上重放完整生命周期（agent-home 整树指纹前后比对为零污染证据）：feedback 提交 → 候选 → merge（`lameness-check` 0.1.0→0.1.1→0.1.2，每次 merge 前快照写入 `history/*.jsonl` 且内容逐字节等于对应旧版本）→ rollback 恢复**最近一次**快照（回到 0.1.1 内容，而非最初版本）→ 重复 rollback 的边界行为（快照 append-only 不弹栈，幂等于同一快照，不会继续回退）→ discard 路径（skill 文件零改动、候选标记 discarded、不可重复决策）→ `feedback_candidates.jsonl` 审计链事件序列与时间单调性校验。每步结构化证据写入 `docs/evidence/skill_evolution_demo.json`，任一步失败脚本以非零码退出。
+
 ## 证据文件
 
 - `app/evaluation.py`：固定样本评测（含域外负例判定）、工具 schema 校验、上下文压缩统计
 - `eval/skill_benchmark.json`（16 例）、`eval/tool_benchmark.json`（12 例）、`eval/tool_benchmark_apibank_subset.json`（26 例，文件头 `_meta` 注明来源与转换方法）
 - `app/mcp_evidence.py`：MCP 发现、调用、失败和权限场景
+- `app/offline_fakes.py`：脚本化 LLM 回放客户端 + 罐头 cow-admin MockTransport（tests 与 demo 共用）
 - `scripts/run_agent_evals.py`：一键运行并生成 JSON 报告
-- `tests/test_mcp_runtime.py`、`tests/test_feedback_ledger.py`、`tests/test_evaluation.py`、`tests/test_subagent_permissions.py`：回归测试
+- `scripts/demo_subagent_investigation.py`：cow-investigator 多头牛排查 + 建单审批演示（证据 `docs/evidence/subagent_investigation_demo.json`）
+- `scripts/demo_skill_evolution.py`：自进化 merge/rollback/discard 全生命周期演示（证据 `docs/evidence/skill_evolution_demo.json`）
+- `tests/test_mcp_runtime.py`、`tests/test_feedback_ledger.py`、`tests/test_evaluation.py`、`tests/test_subagent_permissions.py`、`tests/test_subagent_investigation.py`、`tests/test_skill_evolution_flow.py`：回归测试
 - `docs/evidence/agent_runtime_evidence.json`：本次运行的逐样本结果

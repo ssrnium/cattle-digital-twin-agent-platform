@@ -1,0 +1,77 @@
+{
+  "generated_at": "2026-09-27T08:00:42.119554+00:00",
+  "offline": true,
+  "skill": "lameness-check",
+  "mechanism": "app/feedback.py::FeedbackLedger + bear/agents/skill_evolution.py （evolve 前快照 → rollback 恢复最近快照 → append-only JSONL 审计）",
+  "sandbox": "agent-home/.bear/skills 临时副本，运行结束即删除，agent-home 零改动",
+  "all_steps_ok": true,
+  "steps": [
+    {
+      "step": "merge#1",
+      "ok": true,
+      "candidate_id": "c177d1216cc9",
+      "version_before": "",
+      "version_after": "0.1.1",
+      "snapshot_count": 1,
+      "snapshot_version": "0.1.0",
+      "snapshot_content_matches_original": true
+    },
+    {
+      "step": "merge#2",
+      "ok": true,
+      "candidate_id": "986a35898048",
+      "version_before": "0.1.1",
+      "version_after": "0.1.2",
+      "snapshot_count": 2,
+      "latest_snapshot_content_matches_v1": true
+    },
+    {
+      "step": "rollback#1",
+      "ok": true,
+      "restored_version": "0.1.1",
+      "content_matches_v1": true,
+      "content_matches_original": false,
+      "note": "恢复快照栈顶（merge#2 前），不是一路回退到最初版本"
+    },
+    {
+      "step": "rollback#2-boundary",
+      "ok": true,
+      "restored_version": "0.1.1",
+      "content_unchanged": true,
+      "note": "重复 rollback 不继续回退到更早快照：机制是『恢复最近快照』而非『撤销栈』"
+    },
+    {
+      "step": "discard",
+      "ok": true,
+      "candidate_id": "4febea945313",
+      "skill_file_untouched": true
+    },
+    {
+      "step": "audit-chain",
+      "ok": true,
+      "event_sequence": [
+        "candidate_submitted",
+        "candidate_decided",
+        "candidate_submitted",
+        "candidate_decided",
+        "skill_rollback",
+        "skill_rollback",
+        "candidate_submitted",
+        "candidate_decided"
+      ],
+      "times_monotonic": true,
+      "decision_status": {
+        "c177d1216cc9": "merged",
+        "986a35898048": "merged",
+        "4febea945313": "discarded"
+      },
+      "ledger_file": ".bear\\skill-evolution\\feedback_candidates.jsonl"
+    },
+    {
+      "step": "no-pollution",
+      "ok": true,
+      "agent_home_tree_digest_unchanged": true,
+      "note": "全流程在临时副本执行，演示结束临时目录整体删除"
+    }
+  ]
+}
