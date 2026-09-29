@@ -1,0 +1,67 @@
+{
+  "case": "业务 MCP Server ranch-operations-mcp 在线冒烟（7 工具：5 只读 + 2 写）",
+  "env": "AutoDL 云服务器（主机与端口按纪律脱敏），cow-admin/cow-ai/cow-agent 在线，真实 DeepSeek 模型",
+  "date": "2026-09-28",
+  "server": "cow-agent/mcp_servers/ranch_operations/server.py（stdio JSON-RPC，无 MCP SDK 依赖）",
+  "registration": "cow-agent/agent-home/.mcp.json 增加 ranch-operations 条目（ranch-demo fixture 保留）",
+  "auth": "svc-agent 凭据经 cow-agent 进程环境传给 MCP 子进程（.mcp.json 不落凭据）；本文件按纪律脱敏",
+  "results": {
+    "a_tools_list": {
+      "status": "PASS",
+      "detail": "Runtime McpManager 发现 mcp__ranch-operations__* 共 7 个工具（日志：MCP connected: ranch-operations (7 tools)）",
+      "tools": [
+        "mcp__ranch-operations__query_device_status",
+        "mcp__ranch-operations__query_device_telemetry",
+        "mcp__ranch-operations__query_cow_timeline",
+        "mcp__ranch-operations__query_twin_state",
+        "mcp__ranch-operations__search_maintenance_knowledge",
+        "mcp__ranch-operations__register_work_order",
+        "mcp__ranch-operations__mark_device_for_inspection"
+      ],
+      "read_only_annotations": "5 只读工具 readOnlyHint=true；2 写工具不标 readOnlyHint（Runtime 按写处理走确认）"
+    },
+    "b_query_device_telemetry": {
+      "status": "PASS",
+      "request": {"tool": "query_device_telemetry", "arguments": {"barn_id": "20"}},
+      "measured": {
+        "barn_id": "20",
+        "temperature": {"value": 32.0, "unit": "℃", "alert_level": "ALERT", "quality": "GOOD", "device_id": "sensor-barn-20-01", "threshold_version": "env-demo-v1"},
+        "humidity": {"value": 85.0, "unit": "%RH", "alert_level": "ALERT", "quality": "GOOD", "device_id": "sensor-barn-20-01"},
+        "active_alerts_count": 2,
+        "active_alerts_sample": {"metric": "temperature", "level": "ALERT", "value": 32.0, "work_order_id": 208}
+      },
+      "note": "经 Runtime McpManager.call_tool 真实调用（MCP 子进程 → cow-admin /api/v1/env/telemetry/latest?barnId=20）"
+    },
+    "c_search_maintenance_knowledge": {
+      "status": "PASS",
+      "request": {"tool": "search_maintenance_knowledge", "arguments": {"query": "温度 32 度怎么办"}},
+      "measured": {
+        "matched": true,
+        "document_name": "牛舍温湿度控制规程",
+        "document_version": "env-sop-v1.2",
+        "effective_date": "2026-01-15",
+        "section": "3. 异常处置步骤（温度 > 30℃ 或湿度 > 80%RH）",
+        "similarity_score": 0.5879,
+        "source_id": "barn_temp_humidity_sop@env-sop-v1.2#h2-3#chunk-1"
+      },
+      "memory_note": "cow-ai 在该 2GB 内存口径服务器上加载 bge-small-zh-v1.5 完成检索，未发生 OOM；拒答语义（matched/threshold_note）由 server 原样透传，不二次加工"
+    },
+    "d_write_tool_pending_action_chain": {
+      "status": "PASS (8/8)",
+      "flow": "Agent chat（default 模式）→ LLM 调用 mcp__ranch-operations__register_work_order → Runtime check_permission 拦截 park（pending_confirmation 出现）→ park 时向 cow-admin 注册 PENDING_ACTION（fail-closed）→ 用户经现有 /api/v1/agent/confirm 通道批准（admin 先落 APPROVED 再转发放行）→ Runtime 把 action_id 注入 MCP 调用参数 → MCP server 透传为 X-Action-Id 调 POST /api/v1/tasks → cow-admin 校验凭证+参数摘要，同事务建单并置 EXECUTED（exactly-once）",
+      "checks": {
+        "d1_park_intercepted": "PASS：pending_confirmation.tool=mcp__ranch-operations__register_work_order，arguments 含 type/device_id/priority/source_event_id",
+        "d2_pending_action_registered": "PASS：park 即出现 PENDING 行（tool=mcp__ranch-operations__register_work_order）",
+        "d3_confirm_accepted": "PASS：/api/v1/agent/confirm code=200",
+        "d4_work_order_created": "PASS：work_order 208→209（+1）",
+        "d5_order_shape": "PASS：新工单 DEVICE_REPAIR|sensor-barn-20-01|NEW",
+        "d6_credential_executed": "PASS：pending_action EXECUTED 并绑定 work_order_id=209",
+        "d7_replay_rejected": "PASS：同一 X-Action-Id 重放 POST /api/v1/tasks → code=409（该审批已执行过，禁止重复建单），工单数不变",
+        "d8_no_credential_rejected": "PASS：svc-agent 无 X-Action-Id 直连建单 → code=403（智能体建单必须携带审批凭证）"
+      },
+      "llm_behavior_note": "第一轮对话 LLM 按系统提示先取数（query_env_telemetry/list_devices/list_work_orders/mcp__ranch-operations__search_maintenance_knowledge）并给出建单提案；用户第二轮确认后触发写工具 park——MCP 只读工具被 LLM 在真实对话中自主选用"
+    }
+  },
+  "degraded_tool_note": "mark_device_for_inspection：cow-admin 无独立设备状态写接口（设备写仅心跳），按手册降级为创建 DEVICE_REPAIR 类型检查工单（type 固定，description 原样透传以保证参数摘要一致）；是否恢复独立接口由父 agent 决策",
+  "local_tests": "cow-agent pytest 108 passed（基线 90 + 新增 18；分层口径：本项仅 cow-agent 层）"
+}

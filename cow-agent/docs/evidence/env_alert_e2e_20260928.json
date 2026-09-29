@@ -1,0 +1,247 @@
+{
+  "case": "20 号牛棚温度异常处置（环境遥测与设备维护知识接入闭环）",
+  "env": "AutoDL 云服务器，cow-admin/cow-ai/cow-agent/cow-web 在线，真实 DeepSeek 模型",
+  "date": "2026-09-28",
+  "threshold_version": "env-demo-v1（演示阈值，未经真实牛舍环境校准）",
+  "auth": "JWT 已获取但按纪律脱敏为 ***",
+  "steps": [
+    {
+      "step": "0",
+      "name": "登录 cow-admin 拿 JWT",
+      "status": "PASS",
+      "measured": "http=200 token_len=184",
+      "note": ""
+    },
+    {
+      "step": "0b",
+      "name": "cow-ai / cow-agent 健康检查",
+      "status": "PASS",
+      "measured": "8001=200 8003=200",
+      "note": ""
+    },
+    {
+      "step": "1",
+      "name": "simulator env alert 发送 32℃/85%RH 到 MQTT",
+      "status": "PASS",
+      "measured": "temp_event=4d5d9fff hum_event=cf7a0916",
+      "note": "cow-edge --mode env --env-scenario alert，topic farm/farm-20/event"
+    },
+    {
+      "step": "2-3",
+      "name": "ENV_TELEMETRY 经统一入口落库（事件查询 API 可见）",
+      "status": "PASS",
+      "measured": "http=200 事件含32℃遥测=True",
+      "note": "GET /api/v1/events?eventType=ENV_TELEMETRY 轮询≤30s"
+    },
+    {
+      "step": "5",
+      "name": "32℃/85%RH 触发 ENV_ALERT 且生成高优维修工单",
+      "status": "PASS",
+      "measured": "工单207 source_event_id=4d5d9fff-505f… 对应首轮遥测事件=True; ENV_ALERT 0→2（首轮）; active_alerts=1",
+      "note": "修正断言：simulator 日志只打 event_id 前 8 位，改库内核对；规则 ALERT→高优 DEVICE_REPAIR，24h 收敛"
+    },
+    {
+      "step": "6",
+      "name": "工单为 DEVICE_REPAIR / HIGH / NEW",
+      "status": "PASS",
+      "measured": "row=DEVICE_REPAIR|HIGH|NEW",
+      "note": ""
+    },
+    {
+      "step": "专项a",
+      "name": "设备关联：latest 接口 barn 20 下返回 sensor-barn-20-01 温湿度",
+      "status": "PASS",
+      "measured": "metrics=['humidity', 'temperature'] temp=32.0℃ alert_level=ALERT",
+      "note": "device.meta.barn_id=20 关联（DataInitializer 注册）"
+    },
+    {
+      "step": "4",
+      "name": "同一 event_id 重发 → 服务端幂等去重（无重复事件）",
+      "status": "PASS",
+      "measured": "simulator 同 id 发送 2 次，落库 1 条；全表 event_id 重复行=0",
+      "note": "修正断言：LIKE 前缀匹配 + 全表 event_id 唯一性核对"
+    },
+    {
+      "step": "7",
+      "name": "24h 告警收敛：ENV_ALERT 新增但不重复建单",
+      "status": "PASS",
+      "measured": "ENV_ALERT 2→4; 环境维修工单数=1",
+      "note": "同设备 24h 内已有未关闭工单则跳过"
+    },
+    {
+      "step": "迟到",
+      "name": "迟到事件（event_time 更早的 27℃）不覆盖最新读数",
+      "status": "PASS",
+      "measured": "latest temp=32.0℃ event_time=2026-09-28 18:00:22",
+      "note": "latest 按 event_time 取最新，时序不回退"
+    },
+    {
+      "step": "8-9",
+      "name": "Agent chat 调用 query_env_telemetry（tool_trace 验证）",
+      "status": "PASS",
+      "measured": "http=200 tools=['skill', 'query_env_telemetry', 'list_devices', 'list_work_orders', 'list_events', 'memory_recall']",
+      "note": "直连 8003，真实 DeepSeek 模型，宽松断言不硬凑"
+    },
+    {
+      "step": "10",
+      "name": "cow-ai /env/advice 命中《牛舍温湿度控制规程》",
+      "status": "PASS",
+      "measured": "matched=True doc=牛舍温湿度控制规程 ver=env-sop-v1.2 score=0.717",
+      "note": "source_id=barn_temp_humidity_sop@env-sop-v1.2#h1-0#chunk-1"
+    },
+    {
+      "step": "11",
+      "name": "Agent 回复引用实时温度/告警级别（宽松断言）",
+      "status": "PASS",
+      "measured": "reply_len=2584 含温度=True 含处置语义=True",
+      "note": "全文见 agent_chat_full；真实模型未达标则如实记 FAIL"
+    },
+    {
+      "step": "12",
+      "name": "写操作被拦截 park（pending_confirmation=create_work_order）",
+      "status": "PASS",
+      "measured": "tool=create_work_order args={\"type\": \"DEVICE_REPAIR\", \"device_id\": \"sensor-barn-20-01\", \"source_event_id\": \"4d5d9fff-505f-42e1-b",
+      "note": "d2 同款 API 级审批链路"
+    },
+    {
+      "step": "13",
+      "name": "批准 → 建单成功（work_order +1）",
+      "status": "PASS",
+      "measured": "confirm_code=200 orders 207→208",
+      "note": ""
+    },
+    {
+      "step": "14",
+      "name": "同一 X-Action-Id 重放 → 不重复建单",
+      "status": "PASS",
+      "measured": "action状态=EXECUTED replay_http=409 msg=该审批已执行过，禁止重复建单 orders 208→208",
+      "note": "svc-agent 持 EXECUTED 凭证重放 → 409 该审批已执行过（exactly-once）"
+    },
+    {
+      "step": "15",
+      "name": "cow-web 8089 新 dist 服役（EnvPanel 特征串）+ 卡片依赖接口 200",
+      "status": "PASS",
+      "measured": "index=200 特征串命中=True(telemetry/latest 编译进 index-Dlq-HX_F.js) chunk_http=200 events分页=200(total=7) latest=200",
+      "note": "nginx 静态无需重启；修正断言：grep -l 只出文件名，改 grep -o 验证内容"
+    },
+    {
+      "step": "专项b1",
+      "name": "同问题返回 env-sop-v1.2（最新生效版本，非旧版）",
+      "status": "PASS",
+      "measured": "ver=env-sop-v1.2 effective=2026-01-15 score=0.684",
+      "note": ""
+    },
+    {
+      "step": "专项b2",
+      "name": "知识库外问题拒答（matched=false + 拒答文案逐字）",
+      "status": "PASS",
+      "measured": "matched=False score=0.4463 文案逐字=True",
+      "note": "MIN_SIMILARITY=0.55 实测定标"
+    }
+  ],
+  "saved_at": "2026-09-28 18:02:55",
+  "agent_chat_full": {
+    "message": "20 号牛棚环境异常怎么办？",
+    "reply": "The user asks: \"20号牛棚环境异常怎么办?\" This matches env-check skill. Let me invoke it.Let me query env telemetry for barn 20. Also maybe list_devices for device info. Start with query_env_telemetry.\nTelemetry returned. Now let me check device health and existing work orders in parallel.\nTelemetry and work-order context retrieved. Let me check device-offline events and farm memory for prior env notes.\n## 20 号牛棚环境排查结论（依据 env-check SOP）\n\n### 1. 实时遥测（`query_env_telemetry(barn_id=\"20\")`）\n\n| 设备 | 指标 | 数值 | 告警等级 | 数据质量 | 采集时间 |\n|---|---|---|---|---|---|\n| sensor-barn-20-01 | 温度 | **32.0 °C** | **ALERT** | GOOD | 2026-09-28 18:00:22 |\n| sensor-barn-20-01 | 湿度 | **85.0 %RH** | **ALERT** | GOOD | 2026-09-28 18:00:22 |\n\n- 阈值版本：`env-demo-v1`。**是否超阈值以 cow-admin 确定性规则（`alert_level` / `active_alerts`）为准**，我不自行计算阈值；该版本在工单描述中被注明为\"演示阈值、未经真实牛舍校准\"，结论用于排查方向，最终处置由场长/兽医判定。\n- 两条数据 `quality=GOOD`，可作为排查依据（无 SUSPECT 数据）。\n\n### 2. 告警与工单状态\n\n- 当前生效告警（`active_alerts`）：`work_order_id=207`，metric=temperature，level=ALERT，value=32.0，`source_event_id=4d5d9fff-505f-42e1-b156-96bbb3f1294c`，创建于 2026-09-28 18:00:12。\n- 已存在工单 **#207（WO2026092818001261611）**：类型 `DEVICE_REPAIR`，设备 `sensor-barn-20-01`，优先级 **HIGH**，状态 **NEW（未派单）**。\n- **因此不需要再建单**：该告警已闭环到工单，重复建单也会被幂等去重。**建议动作是把 #207 立即派单/受理**，由设备维护方现场核验环控设备。\n\n### 3. 数据质量与设备链路存疑点（需要现场确认）\n\n- 遥测本体数据 GOOD，但设备台账里 `sensor-barn-20-01` 显示 `onlineStatus=OFFLINE`、`lastHeartbeatAt=null`、`offlineSeconds=0`——心跳属性自相矛盾（既无心跳又离线时长为 0），**建议先确认传感器供电/接线与数据是否仍在持续上报**，避免用陈旧值做处置依据。\n- 同棚 `camera-01~04` 四路摄像头均为 `OFFLINE`（`lastHeartbeatAt=null`）；`edge-node-01` 边缘节点离线 `588132s`（约 6.8 天，上次心跳 2026-09-21T22:38:30）。\n- 事件流中 **没有 DEVICE_OFFLINE 事件**（`list_events(event_type=\"DEVICE_OFFLINE\")` 返回 0 条），说明离线未生成 AI 事件，属台账/心跳层面的异常，建议与设备维护一并核查。\n\n### 4. 手册依据\n\n我**无法引用具体手册出处**：按 SOP，阈值/处置依据应来自设备维护知识检索（cow-ai `GET /api/v1/env/advice`，经 cow-admin 暴露），当前未对我开放该接口。缺这份数据，不能编造 `document_name` / `section`（如《温湿度传感器故障排查手册》的具体章节）。\n\n### 5. 建议处置（供场长/兽医参考，最终决定权在你们）\n\n1. **立即**：受理并派发工单 #207（HIGH），现场检查 20 号牛棚环控（风机、喷淋/水帘、通风窗）与传感器本身。\n2. **降温降湿**：高温 32 °C + 高湿 85 %RH 叠加会显著加剧热应激，优先加强通风与喷淋、保证充足清洁饮水、调整饲喂避开高温时段；高湿下注意垫料干燥与地面防滑。\n3. **牛群观察**：对 103 头牛关注呼吸频率、采食量与产奶下降等热应激表现；如出现个体异常，我可以用 `agent(type=\"cow-investigator\")` 逐头排查并出报告（只读，由你决定是否转兽医工单）。\n4. **数据链路**：排查传感器/边缘节点/摄像头心跳异常（上表），确认告警值不是链路异常造成的假信号。\n\n### 6. 需要我继续做的（均需你确认后才执行写操作）\n\n- 若你要求\"为环境异常建单\"，我**不建议重复建**（#207 已存在）；如需**追加/升级**（例如改派或补一张针对边缘节点 `edge-node-01` 的维修单），请回复确认，我再调用 `create_work_order` 并说明理由。\n- 如需把本次结论沉淀到长期记忆（`memory_note`，scope=farm），也请确认，我会写入并引用上述 `device_id` 与告警 `source_event_id`。\n\n当前唯一不确定项：**缺失 `GET /api/v1/env/advice` 的手册章节依据**；补齐后我可以把\"阈值出处 + 排查条款\"补进报告。",
+    "tool_trace": [
+      {
+        "tool": "skill",
+        "arguments": {
+          "skill_name": "env-check",
+          "args": "牛棚 20 环境遥测异常排查"
+        },
+        "result_preview": "[Skill \"env-check\" activated]\n\n# 牛棚环境遥测排查 SOP（env-check）\n\n收到牛棚环境异常（温度/湿度等）排查请求时，按以下步骤执行，每步基于工具或确定性规则结果，禁止跳步下结论：\n\n1. **查环境遥测**：`query_env_telemetry(barn_id=...)`（如 20 号牛棚传 `\"20\"`），\n   获取 `items`（device_id / metric / value / unit / quality / event_time / alert_level /\n   threshold_version）与 `active_alerts`（work_order_id / metric / value / level / created_at /\n   source_event_id）。\n2. **读告警状态**：直接读取返回中的 `alert_level` 与 `active_alerts`。\n   **是否超阈值以 cow-admin 的确定性规则结果为准，Agent 不自行计算阈值、不下最终业务结论。**\n3. **"
+      },
+      {
+        "tool": "query_env_telemetry",
+        "arguments": {
+          "barn_id": "20"
+        },
+        "result_preview": "{\"barn_id\": \"20\", \"items\": [{\"unit\": \"%RH\", \"device_id\": \"sensor-barn-20-01\", \"metric\": \"humidity\", \"threshold_version\": \"env-demo-v1\", \"alert_level\": \"ALERT\", \"value\": 85.0, \"event_time\": \"2026-09-28 18:00:22\", \"quality\": \"GOOD\"}, {\"unit\": \"°C\", \"device_id\": \"sensor-barn-20-01\", \"metric\": \"temperature\", \"threshold_version\": \"env-demo-v1\", \"alert_level\": \"ALERT\", \"value\": 32.0, \"event_time\": \"2026-09-28 18:00:22\", \"quality\": \"GOOD\"}], \"active_alerts\": [{\"work_order_id\": 207, \"metric\": \"temperatu"
+      },
+      {
+        "tool": "list_devices",
+        "arguments": {},
+        "result_preview": "[{\"barnId\": \"20号牛棚\", \"pendingCount\": 0, \"lastHeartbeatAt\": null, \"lastSyncAt\": null, \"meta\": {\"rtsp\": \"rtsp://192.168.20.11/stream1\", \"zone\": \"ZONE-A\"}, \"onlineStatus\": \"OFFLINE\", \"name\": \"20号牛棚摄像头-1\", \"offlineSeconds\": 0, \"id\": 1, \"type\": \"CAMERA\", \"deviceId\": \"camera-01\"}, {\"barnId\": \"20号牛棚\", \"pendingCount\": 0, \"lastHeartbeatAt\": null, \"lastSyncAt\": null, \"meta\": {\"rtsp\": \"rtsp://192.168.20.12/stream1\", \"zone\": \"ZONE-B\"}, \"onlineStatus\": \"OFFLINE\", \"name\": \"20号牛棚摄像头-2\", \"offlineSeconds\": 0, \"i"
+      },
+      {
+        "tool": "list_work_orders",
+        "arguments": {
+          "page": 1,
+          "size": 20
+        },
+        "result_preview": "{\"records\": [{\"id\": 207, \"orderNo\": \"WO2026092818001261611\", \"type\": \"DEVICE_REPAIR\", \"cowId\": null, \"deviceId\": \"sensor-barn-20-01\", \"sourceEventId\": \"4d5d9fff-505f-42e1-b156-96bbb3f1294c\", \"state\": \"NEW\", \"priority\": \"HIGH\", \"assigneeId\": null, \"description\": \"环境异常告警：temperature=32.0°C（等级 ALERT，演示阈值版本 env-demo-v1，未经真实牛舍校准），请现场检查环控设备\", \"reviewResult\": null, \"reviewedBy\": null, \"reviewedAt\": null, \"version\": 0, \"createTime\": \"2026-09-28T18:00:12.824789\", \"updateTime\": \"2026-09-28T18:00:12.824803"
+      },
+      {
+        "tool": "list_events",
+        "arguments": {
+          "event_type": "DEVICE_OFFLINE",
+          "size": 10
+        },
+        "result_preview": "{\"records\": [], \"total\": 0, \"page\": 1, \"size\": 10}"
+      },
+      {
+        "tool": "memory_recall",
+        "arguments": {
+          "scope": "farm",
+          "query": "20号牛棚 环境 温度 湿度 遥测",
+          "limit": 5
+        },
+        "result_preview": "{\"scope\": \"farm\", \"query\": \"20号牛棚 环境 温度 湿度 遥测\", \"total_entries\": 0, \"returned\": 0, \"entries\": []}"
+      }
+    ],
+    "tokens": {
+      "input": 29286,
+      "output": 2818
+    }
+  },
+  "env_advice_full": {
+    "advice": "依据《牛舍温湿度控制规程》（版本 env-sop-v1.2，生效日期 2026-01-15）「文档信息」章节：\n# 牛舍温湿度控制规程\n\n- 文档名称：牛舍温湿度控制规程\n- 版本号：env-sop-v1.2\n- 生效日期：2026-01-15\n- 适用设备：牛舍温湿度传感器（TH-S 系列）、轴流通风风机、喷淋降温系统、边缘网关\n- 适用场景：牛舍环境温度、湿度遥测值触发预警/异常告警时的现场处置与上报\n\n> 本规程阈值为演示规则，未经过真实牛舍环境校准。正式投运前须由畜牧兽医与设备工程师结合本地气候、牛群品种与牛舍结构完成阈值标定。",
+    "matched": true,
+    "source_id": "barn_temp_humidity_sop@env-sop-v1.2#h1-0#chunk-1",
+    "document_name": "牛舍温湿度控制规程",
+    "document_version": "env-sop-v1.2",
+    "effective_date": "2026-01-15",
+    "section": "文档信息",
+    "similarity_score": 0.717,
+    "threshold_note": "温度分级（牛舍环境温度，单位 ℃）：；正常：温度 ≤ 28℃；预警：28℃ < 温度 ≤ 30℃；异常：温度 > 30℃。；湿度分级（牛舍相对湿度，单位 %RH）：；正常：湿度 ≤ 70%RH；预警：70%RH < 湿度 ≤ 80%RH；异常：湿度 > 80%RH。",
+    "chunks": [
+      {
+        "content": "# 牛舍温湿度控制规程\n\n- 文档名称：牛舍温湿度控制规程\n- 版本号：env-sop-v1.2\n- 生效日期：2026-01-15\n- 适用设备：牛舍温湿度传感器（TH-S 系列）、轴流通风风机、喷淋降温系统、边缘网关\n- 适用场景：牛舍环境温度、湿度遥测值触发预警/异常告警时的现场处置与上报\n\n> 本规程阈值为演示规则，未经过真实牛舍环境校准。正式投运前须由畜牧兽医与设备工程师结合本地气候、牛群品种与牛舍结构完成阈值标定。",
+        "document_name": "牛舍温湿度控制规程",
+        "section": "文档信息",
+        "similarity_score": 0.717,
+        "source_id": "barn_temp_humidity_sop@env-sop-v1.2#h1-0#chunk-1"
+      },
+      {
+        "content": "3. 异常处置步骤（温度 > 30℃ 或湿度 > 80%RH）\n1. 立即开启该牛舍全部通风风机，并开启喷淋降温系统（喷淋 30 秒、间隔 10 分钟循环，避免长时间喷淋导致湿度进一步升高）；\n2. 检查温湿度传感器是否故障：用便携式温湿度计在传感器安装位置旁复测，读数偏差超过 ±1.5℃ 或 ±5%RH 时，按《温湿度传感器故障排查手册》处理，处置结论以人工复测值为准；\n3. 检查通风风机与喷淋泵运行电流，确认设备真实运转，而非仅平台状态位为开；\n4. 温度异常持续 1 小时不缓解，或牛只出现张口呼吸、流涎等热应激表现时，立即通知驻场兽医；\n5. 湿度异常时同步检查舍内污水排放与喷淋是否误开，必要时手动关闭喷淋并加强清粪频次；\n6. 异常解除后，在平台登记处置记录（处置人、起止时间、采取措施、复测结果）。",
+        "document_name": "牛舍温湿度控制规程",
+        "section": "3. 异常处置步骤（温度 > 30℃ 或湿度 > 80%RH）",
+        "similarity_score": 0.7058,
+        "source_id": "barn_temp_humidity_sop@env-sop-v1.2#h2-3#chunk-1"
+      },
+      {
+        "content": "1. 阈值定义\n温度分级（牛舍环境温度，单位 ℃）：\n\n- 正常：温度 ≤ 28℃；\n- 预警：28℃ < 温度 ≤ 30℃；\n- 异常：温度 > 30℃。\n\n湿度分级（牛舍相对湿度，单位 %RH）：\n\n- 正常：湿度 ≤ 70%RH；\n- 预警：70%RH < 湿度 ≤ 80%RH；\n- 异常：湿度 > 80%RH。\n\n温度与湿度任一项触发更高级别时，按较高级别处置。连续 3 个采样周期（默认 5 分钟一个周期）处于同一级别才升级告警，单点抖动不升级。",
+        "document_name": "牛舍温湿度控制规程",
+        "section": "1. 阈值定义",
+        "similarity_score": 0.7053,
+        "source_id": "barn_temp_humidity_sop@env-sop-v1.2#h2-1#chunk-1"
+      }
+    ]
+  },
+  "write_confirm_pending": {
+    "tool": "create_work_order",
+    "arguments": {
+      "type": "DEVICE_REPAIR",
+      "device_id": "sensor-barn-20-01",
+      "source_event_id": "4d5d9fff-505f-42e1-b156-96bbb3f1294c",
+      "priority": "HIGH",
+      "description": "现场检查通风系统（验收测试）。依据：sensor-barn-20-01 遥测 temperature=32.0°C / humidity=85%RH，alert_level=ALERT（阈值版本 env-demo-v1，quality=GOOD，event_time 2026-09-28 18:00:22），来源事件 event_id=4d5d9fff-505f-42e1-b156-96bbb3f1294c。注：与该事件已存在的工单 207 为同一来源，本单为验收测试单独立项。"
+    },
+    "message": "{\"kind\": \"cow_write\", \"tool\": \"create_work_order\", \"arguments\": {\"type\": \"DEVICE_REPAIR\", \"device_id\": \"sensor-barn-20-01\", \"source_event_id\": \"4d5d9fff-505f-42e1-b156-96bbb3f1294c\", \"priority\": \"HIGH\", \"description\": \"现场检查通风系统（验收测试）。依据：sensor-barn-20-01 遥测 temperature=32.0°C / humidity=85%RH，alert_level=ALERT（阈值版本 env-demo-v1，quality=GOOD，event_time 2026-09-28 18:00:22），来源事件 event_id=4d5d9fff-505f-42e1-b156-96bbb3f1294c。注：与该事件已存在的工单 207 为同一来源，本单为验收测试单独立项。\"}}",
+    "since": 1790589767.0275812
+  },
+  "fixup_note": "步骤 4/5/14 为首轮脚本断言缺陷（event_id 8 位前缀等值匹配、curl_json 缺 headers 参数）后的复测修正，产品行为两轮一致；其余步骤为首轮实测。",
+  "fixup_note2": "步骤 15/专项b1/专项b2 为首轮脚本步骤 14 崩溃后补跑，环境状态与首轮连续。",
+  "fixup_note3": "步骤15 修正断言方式（grep -l→grep -o），服务器 dist 内容两轮一致。"
+}

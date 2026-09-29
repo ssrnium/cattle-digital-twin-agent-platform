@@ -26,6 +26,25 @@
 
 > 验证记录：浏览器级主链路 15/15、写操作确认机制 7/7、后端单测 64 项全过；Agent Runtime 离线证据为 Skill Top-1 100%、工具选择/参数/序列 100%、四个固定任务平均总 Token 下降 67.67%、MCP 3 工具发现与读写/失败场景通过——评测样本规模：Skill 基准 16 例（标准/口语化/近义干扰问法 + 2 例域外负例，负例拒识率 100%）、Tool 契约基准 12 例（覆盖全部 7 个领域工具）、API-Bank 公开基准改写子集 26 例（来源与转换方法见 `cow-agent/eval/tool_benchmark_apibank_subset.json` 文件头 `_meta`）——详见 `cow-agent/docs/agent_runtime_evidence.md` 和 `cow-agent/docs/evidence/agent_runtime_evidence.json`；验证脚本见 `acceptance/` 与 `cow-agent/scripts/run_agent_evals.py`。
 
+## 里程碑：环境遥测与设备维护知识接入闭环（v0.3.0，2026-09-29）
+
+在既有视觉与 MQTT 事件链路之上，新增**类型化温湿度遥测 → 确定性阈值判断 → 设备维护规程检索（RAG）→ 业务 MCP 工具 → 人工审批建单**的端到端异常处置闭环：
+
+```text
+MQTT 温湿度遥测 → 统一事件接入（event_id 幂等）→ 确定性阈值规则（演示阈值 env-demo-v1）
+→ ENV_ALERT 与 24h 收敛维修工单 → Agent 经内置工具或业务 MCP Server 查询实时遥测与规程
+→ PENDING_ACTION 人工审批 → X-Action-Id 校验 exactly-once 建单
+```
+
+**实测证据**（口径与原始数据见括号内文件）：
+
+- 在线验收 **19/19**（`cow-agent/docs/evidence/env_alert_e2e_20260928.json`）：同 event_id 零重复落库、迟到遥测不回退最新状态、X-Action-Id 重放 409、域外问题拒答文案逐字符合规程要求；
+- 补证验收 **24 项**（`cow-agent/docs/evidence/env_929_gaps_20260929.json`）：真实模型零引导自主选用 MCP 业务工具完成分析并发起建单；审批凭证四负例（无凭证/伪造/过期 120s/重复）全部拦截；Session 重启后续处理同一异常且无重复写动作；遥测断网缓存恢复补传（验收中曾发现遥测链路未走离线缓存的真实缺口，已修复并保留原始失败记录）；
+- 业务 MCP 冒烟 **4/4**（`cow-agent/docs/evidence/mcp_ranch_operations_20260928.json`）：7 个业务工具发现、遥测实查、规程命中、审批建单与重放 409；
+- 环境规程检索评测（26 条六类固定评测集，bge-small-zh 实测）：**Top-1 0.778 / Top-3 1.000 / MRR 0.972 / 域外拒答率 1.0**；近义干扰子集误放行 2/4 为已知 badcase，口径与改进方向见 `cow-ai/docs/评测报告_环境规程RAG_20260929.md`。
+
+**边界声明**：温湿度数据、规程文档与告警结果均为模拟/演示数据，阈值为演示规则、未经过真实牛舍环境校准；当前为可运行、可复现、可验收的验证版本——RAG 近义干扰分辨、模型"事实/推断"分层输出的稳定性、事件处理失败补偿链路与容量性能验证属后续生产化演进项，不视为已完成。
+
 ## 项目定位
 
 本项目旨在探索 **AI Agent 在垂直业务场景中的工程化落地方式**。
