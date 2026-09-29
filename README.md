@@ -18,7 +18,7 @@
 | --- | --- |
 | ![设备在线状态监测](docs/screenshots/cow-device-online.png) | ![设备离线自动标记](docs/screenshots/cow-device-offline.png) |
 
-| 视觉行为识别（采购权重 · 数据集帧真实检出） |
+| 视觉行为识别 |
 | --- |
 | ![视觉行为识别演示](docs/screenshots/vision-mounting-demo.gif) |
 
